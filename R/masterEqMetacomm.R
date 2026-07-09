@@ -52,6 +52,8 @@
 #'
 #' @export
 #'
+#' @importFrom stats rmultinom
+#'
 #' @examples
 #' \dontrun{
 #' # Assuming inputs S = 3 species, C = 2 communities:
@@ -154,7 +156,7 @@ masterEqMetacomm <- function(Meta.pool,
   # Seed each community with exactly 1 individual based on regional pool and filters
   Meta <- matrix(NA, nrow = length(Meta.pool), ncol = ncol(M.migra))
   for (i in 1:ncol(M.migra)) {
-    Meta[,i] <- rmultinom(1, 1, Meta.pool * d.spp * FF[,i])
+    Meta[,i] <- stats::rmultinom(1, 1, Meta.pool * d.spp * FF[,i])
   }
 
   # Loop over communities to perform the coalescent assembly (until max(Js) is reached) Iteratively scale up communities until they reach their respective carrying capacity (Js)
@@ -244,7 +246,7 @@ masterEqMetacomm <- function(Meta.pool,
 
       # Fill vacancies using multinomial sampling across local, neighboring, and regional pools
       for (i in seq_along(dead.by.it)) {
-        Meta[, i] <- Meta[, i] + rmultinom(1, size = dead.by.it[i], prob = Prob.mat[, i])
+        Meta[, i] <- Meta[, i] + stats::rmultinom(1, size = dead.by.it[i], prob = Prob.mat[, i])
       }
 
       # print iteration

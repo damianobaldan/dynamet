@@ -1,9 +1,9 @@
 Package: dynamet
-Title: What the Package Does (One Line, Title Case)
+Title: Lottery model for metacommunity dynamics
 Version: 0.0.0.9000
 Authors@R: 
     person("First", "Last", , "first.last@example.com", role = c("aut", "cre"))
-Description: What the package does (one paragraph).
+Description: This package provides a framework for modeling metacommunity dynamics across discrete local patches connected by a spatial migration network. The underlying model implements a coalescent-like initial assembly phase and an iterative demographic lottery phase to track species abundances over time. The model includes the following processes: regional pool immigration, species-specific dispersal constraints, diffuse interspecific competition, and local environmental filtering across an $S \times C$ landscape (where $S$ represents species and $C$ represents community patches). To capture climatic drivers, the simulation features local patch mortality rates scaled via the Arrhenius equation, providing a robust computational tool for exploring how spatial connectivity, environmental filters, and thermal gradients interact to shape biodiversity patterns.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)

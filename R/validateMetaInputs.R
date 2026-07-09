@@ -1,11 +1,8 @@
-
-# function to validate the inputs
-#' Title
+#' function to validate the inputs
 #'
 #' @inheritParams masterEqMetacomm
+#' @keywords internal
 #'
-#'
-#' @examples
 validateMetaInputs <- function(
     Meta.pool,
     d.spp,

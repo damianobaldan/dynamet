@@ -1,4 +1,4 @@
-#' function to validate the inputs
+#' Validate the inputs for masterEqMetacomm
 #'
 #' @inheritParams masterEqMetacomm
 #' @keywords internal
@@ -6,7 +6,7 @@
 validateMetaInputs <- function(
     Meta.pool,
     d.spp,
-    FF,
+    FF = NULL,
     m.pool,
     Js,
     M.migra = NULL,
@@ -19,7 +19,7 @@ validateMetaInputs <- function(
     Ea,
     Ts,
     m.temp = NULL,
-    Alfa) {
+    Alfa = NULL) {
 
   # ----------------------------------------------------------------------------
   # 1. CLASS AND TYPE VALIDATIONS
@@ -35,8 +35,8 @@ validateMetaInputs <- function(
   if (!is.numeric(Js))         stop("'Js' must be a numeric vector.")
   if (!is.numeric(Ts))         stop("'Ts' must be a numeric vector.")
 
-  if (!is.matrix(FF) || !is.numeric(FF))     stop("'FF' must be a numeric matrix.")
-  if (!is.matrix(Alfa) || !is.numeric(Alfa)) stop("'Alfa' must be a numeric matrix.")
+  if (!is.null(FF) && (!is.matrix(FF) || !is.numeric(FF)))     stop("'FF' must be a numeric matrix.")
+  if (!is.null(Alfa) && (!is.matrix(Alfa) || !is.numeric(Alfa))) stop("'Alfa' must be a numeric matrix.")
 
   # Configuration cross-dependence safety
   if (!is.null(id.fixed) && is.null(comm.fixed)) {
@@ -62,15 +62,15 @@ validateMetaInputs <- function(
 
   # Species-dimension alignments (Rows)
   if (length(d.spp) != S) stop(sprintf("Dimension mismatch: 'd.spp' length (%d) must match 'Meta.pool' (%d).", length(d.spp), S))
-  if (nrow(FF) != S)       stop(sprintf("Dimension mismatch: Environmental filter matrix 'FF' must have %d rows (Species).", S))
-  if (nrow(Alfa) != S || ncol(Alfa) != S) stop(sprintf("Dimension mismatch: Interspecific competition matrix 'Alfa' must be a square matrix of %d x %d.", S, S))
+  if (!is.null(FF) && nrow(FF) != S)       stop(sprintf("Dimension mismatch: Environmental filter matrix 'FF' must have %d rows (Species).", S))
+  if (!is.null(Alfa) && (nrow(Alfa) != S || ncol(Alfa) != S)) stop(sprintf("Dimension mismatch: Interspecific competition matrix 'Alfa' must be a square matrix of %d x %d.", S, S))
 
   if (!is.null(comm.fixed) && length(comm.fixed) != S) {
     stop(sprintf("Dimension mismatch: 'comm.fixed' length (%d) must match 'Meta.pool' length (%d).", length(comm.fixed), S))
   }
 
   # Community-dimension alignments (Columns)
-  if (ncol(FF) != C) stop(sprintf("Dimension mismatch: Environmental filter matrix 'FF' must have %d columns (Communities).", C))
+  if (!is.null(FF) && ncol(FF) != C) stop(sprintf("Dimension mismatch: Environmental filter matrix 'FF' must have %d columns (Communities).", C))
   if (length(Ts) != C) stop(sprintf("Dimension mismatch: Temperature vector 'Ts' length (%d) must match 'Js' (%d).", length(Ts), C))
 
   if (!is.null(M.migra)) {
@@ -94,12 +94,22 @@ validateMetaInputs <- function(
   if (!is.null(id.obs) && (any(id.obs < 1) || any(id.obs > C)))     stop("'id.obs' contains out-of-bounds community indices.")
 
   # ----------------------------------------------------------------------------
-  # 3. VALUE AND BOUNDARY CONSTRAINTS
+  # 3. VALUE AND BOUNDARY CONSTRAINTS (Includes Zero-Sum / NaN Protections)
   # ----------------------------------------------------------------------------
   # Missing data sweep
-  all_inputs <- list(Meta.pool, d.spp, FF, m.pool, Js, M.migra, it, prop.dead.by.it, Ea, Ts, Alfa)
+  all_inputs <- list(Meta.pool, d.spp, m.pool, Js, M.migra, it, prop.dead.by.it, Ea, Ts)
   if (any(sapply(all_inputs, function(x) any(is.na(x))))) stop("Value error: Missing values (NA/NaN) detected in primary inputs.")
+  if (!is.null(FF) && any(is.na(FF))) stop("Value error: Missing values (NA/NaN) detected in matrix 'FF'.")
+  if (!is.null(Alfa) && any(is.na(Alfa))) stop("Value error: Missing values (NA/NaN) detected in matrix 'Alfa'.")
   if (!is.null(m.temp) && any(is.na(m.temp))) stop("Value error: Missing values (NA/NaN) detected in 'm.temp'.")
+
+  # Dispersal vector (d.spp) safeguards
+  if (any(d.spp < 0)) stop("Value error: Dispersal coefficients in 'd.spp' cannot be negative.")
+  if (sum(d.spp) == 0) stop("Mathematical error: 'd.spp' cannot sum to zero. Use a vector of 1s for a neutral effect.")
+
+  # Regional pool safeguards
+  if (any(Meta.pool < 0)) stop("Value error: Relative abundances in 'Meta.pool' cannot be negative.")
+  if (sum(Meta.pool) == 0) stop("Mathematical error: 'Meta.pool' cannot sum to zero.")
 
   # Ecological and Mathematical boundary safeguards
   if (m.pool < 0 || m.pool > 1)                     stop("'m.pool' regional immigration rate must be between 0 and 1.")
@@ -107,8 +117,21 @@ validateMetaInputs <- function(
   if (any(Js <= 0))                                 stop("Carrying capacities in 'Js' must be strictly positive integers.")
   if (it <= 0)                                      stop("Number of lottery iterations 'it' must be a positive integer.")
 
-  # Enforce strict probability bounds on FF
-  if (any(FF < 0) || any(FF > 1)) stop("Value error: All filtering coefficients in matrix 'FF' must scale between 0 and 1.")
+  # Enforce strict probability bounds on FF and catch all-zero crash conditions
+  if (!is.null(FF)) {
+    if (any(FF < 0) || any(FF > 1)) stop("Value error: All filtering coefficients in matrix 'FF' must scale between 0 and 1.")
+    if (any(colSums(FF) == 0)) {
+      stop("Mathematical error: 'FF' cannot contain a column/community of all zeros. This completely blocks recruitment and will crash the simulation. Use 1s for no effect.")
+    }
+  }
+
+  # Competition matrix (Alfa) safeguards
+  if (!is.null(Alfa)) {
+    if (any(Alfa < 0)) stop("Value error: Competition coefficients in 'Alfa' cannot be negative.")
+    if (all(Alfa == 0)) {
+      stop("Mathematical error: 'Alfa' cannot be a matrix of all zeros (causes a 0/0 NaN loop crash). Set 'Alfa = NULL' or use a matrix of 1s to remove the effect.")
+    }
+  }
 
   # Enforce Kelvin temperature protection
   if (any(Ts <= 0)) stop("Value error: Temperatures in 'Ts' must be strictly positive values expressed in Kelvin.")

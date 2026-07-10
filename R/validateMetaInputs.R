@@ -12,7 +12,8 @@ validateMetaInputs <- function(
     M.migra = NULL,
     id.fixed = NULL,
     comm.fixed = NULL,
-    Lottery,
+    init.comm,
+    lottery,
     it,
     prop.dead.by.it,
     id.obs = NULL,
@@ -25,7 +26,7 @@ validateMetaInputs <- function(
   # 1. CLASS AND TYPE VALIDATIONS
   # ----------------------------------------------------------------------------
   if (!is.numeric(m.pool) || length(m.pool) != 1) stop("'m.pool' must be a single numeric value.")
-  if (!is.logical(Lottery) || length(Lottery) != 1) stop("'Lottery' must be a single logical value.")
+  if (!is.logical(lottery) || length(lottery) != 1) stop("'lottery' must be a single logical value.")
   if (!is.numeric(it) || length(it) != 1) stop("'it' must be a single numeric integer.")
   if (!is.numeric(prop.dead.by.it) || length(prop.dead.by.it) != 1) stop("'prop.dead.by.it' must be a single numeric fraction.")
   if (!is.numeric(Ea) || length(Ea) != 1) stop("'Ea' must be a single numeric value.")
@@ -45,8 +46,10 @@ validateMetaInputs <- function(
   if (is.null(id.fixed) && !is.null(comm.fixed)) {
     stop("Configuration error: 'comm.fixed' was provided, but 'id.fixed' is NULL.")
   }
+
+  # Allow comm.fixed to be either a vector or a matrix
   if (!is.null(comm.fixed) && !is.numeric(comm.fixed)) {
-    stop("'comm.fixed' must be a numeric vector.")
+    stop("'comm.fixed' must be a numeric vector or matrix.")
   }
 
   if (!is.null(M.migra) && (!is.matrix(M.migra) || !is.numeric(M.migra))) stop("'M.migra' must be a numeric matrix.")
@@ -65,8 +68,17 @@ validateMetaInputs <- function(
   if (!is.null(FF) && nrow(FF) != S)       stop(sprintf("Dimension mismatch: Environmental filter matrix 'FF' must have %d rows (Species).", S))
   if (!is.null(Alfa) && (nrow(Alfa) != S || ncol(Alfa) != S)) stop(sprintf("Dimension mismatch: Interspecific competition matrix 'Alfa' must be a square matrix of %d x %d.", S, S))
 
-  if (!is.null(comm.fixed) && length(comm.fixed) != S) {
-    stop(sprintf("Dimension mismatch: 'comm.fixed' length (%d) must match 'Meta.pool' length (%d).", length(comm.fixed), S))
+  # Matrix/Vector dimension handler for comm.fixed
+  if (!is.null(comm.fixed)) {
+    if (is.matrix(comm.fixed)) {
+      if (nrow(comm.fixed) != S || ncol(comm.fixed) != length(id.fixed)) {
+        stop(sprintf("Dimension mismatch: 'comm.fixed' matrix must have dimensions S (%d) x length(id.fixed) (%d).", S, length(id.fixed)))
+      }
+    } else {
+      if (length(comm.fixed) != S) {
+        stop(sprintf("Dimension mismatch: 'comm.fixed' vector must be of length S (%d).", S))
+      }
+    }
   }
 
   # Community-dimension alignments (Columns)
@@ -110,6 +122,16 @@ validateMetaInputs <- function(
   # Regional pool safeguards
   if (any(Meta.pool < 0)) stop("Value error: Relative abundances in 'Meta.pool' cannot be negative.")
   if (sum(Meta.pool) == 0) stop("Mathematical error: 'Meta.pool' cannot sum to zero.")
+
+  # comm.fixed zero-sum crash protections
+  if (!is.null(comm.fixed)) {
+    if (any(comm.fixed < 0)) stop("Value error: Relative abundances in 'comm.fixed' cannot be negative.")
+    if (is.matrix(comm.fixed)) {
+      if (any(colSums(comm.fixed) == 0)) stop("Mathematical error: A column in 'comm.fixed' sums to zero.")
+    } else {
+      if (sum(comm.fixed) == 0) stop("Mathematical error: 'comm.fixed' cannot sum to zero.")
+    }
+  }
 
   # Ecological and Mathematical boundary safeguards
   if (m.pool < 0 || m.pool > 1)                     stop("'m.pool' regional immigration rate must be between 0 and 1.")

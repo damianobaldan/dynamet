@@ -1,4 +1,4 @@
-#' Simulate Metacommunity Dynamics via Coalescent Assembly and Lottery Phases
+#' Simulate Metacommunity Dynamics via Coalescent Assembly and lottery Phases
 #'
 #' @description
 #' This function models metacommunity assembly and demographic turnover across a
@@ -25,13 +25,12 @@
 #' @param id.fixed An optional numeric vector containing indices of communities whose
 #'   compositions are static and locked during simulation steps.
 #' @param comm.fixed An optional numeric vector of length S outlining the fixed relative
-#'   abundance profile assigned to the patches listed in \code{id.fixed}.
-#' @param coalescence A single logical value. If \code{TRUE} (default), builds the initial
-#'   community landscape from scratch using a coalescent process. If \code{FALSE}, skips
-#'   this phase and initializes the simulation using \code{init.comm}.
+#'   abundance profile assigned to the patches listed in \code{id.fixed}. These relative
+#'   abundances are automatically scaled to the specific local carrying capacity (\code{Js})
+#'   of each fixed patch.
 #' @param init.comm An optional numeric matrix of dimensions S x C representing the custom
 #'   starting abundance counts for all species across patches. Required if \code{coalescence = FALSE}.
-#' @param Lottery A single logical value. If \code{TRUE}, triggers the demographic turnover
+#' @param lottery A single logical value. If \code{TRUE}, triggers the demographic turnover
 #'   iterative lottery phase after initial community assembly.
 #' @param it A single numeric integer specifying the total timeline steps/iterations to
 #'   run inside the lottery loop.
@@ -65,7 +64,6 @@ masterEqMetacomm <- function(Meta.pool,
                              M.migra,
                              id.fixed = NULL,
                              comm.fixed = NULL,
-                             coalescence = TRUE,
                              init.comm = NULL,
                              lottery = TRUE,
                              it = 100,
@@ -87,9 +85,8 @@ masterEqMetacomm <- function(Meta.pool,
                      M.migra = M.migra,
                      id.fixed = id.fixed,
                      comm.fixed = comm.fixed,
-                     coalescence = coalescence,
                      init.comm = init.comm,
-                     Lottery = Lottery,
+                     lottery = lottery,
                      it = it,
                      prop.dead.by.it = prop.dead.by.it,
                      Ea = Ea,
@@ -109,8 +106,15 @@ masterEqMetacomm <- function(Meta.pool,
   Meta.pool  <- Meta.pool / sum(Meta.pool)
 
   # Normalize comm.fixed if it is not NULL
+  # Normalize comm.fixed if it is not NULL
   if (!is.null(comm.fixed)) {
-    comm.fixed <- comm.fixed / sum(comm.fixed)
+    if (is.matrix(comm.fixed)) {
+      # If matrix: sweep through and normalize each column independently
+      comm.fixed <- sweep(comm.fixed, 2, colSums(comm.fixed), FUN = "/")
+    } else {
+      # If vector: normalize normally
+      comm.fixed <- comm.fixed / sum(comm.fixed)
+    }
   }
 
   # If FF is NULL, initialize it with 1s (No filtering effect)
@@ -127,11 +131,6 @@ masterEqMetacomm <- function(Meta.pool,
     } else if (length(m.temp) == C) {
       m.temp <- matrix(rep(m.temp, each = S), nrow = S, ncol = C)
     }
-  }
-
-  # Initialize the initial community if it is empty
-  if (is.null(init.comm)) {
-    init.comm <- matrix(0, nrow = S, ncol = C)
   }
 
 
@@ -160,51 +159,74 @@ masterEqMetacomm <- function(Meta.pool,
 
 
   #### 4. COALESCENT ASSEMBLY PHASE ####
-  if (coalescence) {
 
-    # Seed each community with exactly 1 individual based on regional pool and filters
+  # If no initial community is provided, seed each community with exactly 1 individual based on regional pool and filters
+  if (is.null(init.comm)) {
+    Meta <- matrix(0, nrow = S, ncol = C)
     for (i in 1:ncol(M.migra)) {
       Meta[,i] <- stats::rmultinom(1, 1, Meta.pool * d.spp * FF[,i])
     }
-
-    # Loop over communities to perform the coalescent assembly
-    for (ii in 2:max(Js)) {
-
-      # Track communities that have not yet reached their carrying capacity
-      id.j <- which(Js >= ii)
-
-      # Keep fixed communities scaled to current global abundance level
-      if (!is.null(id.fixed)) {
-        Meta[, id.fixed] <- comm.fixed * (ii - 1)
-      }
-
-      # Calculate potential recruits based on local abundance and spatial migration
-      Pool.neighbor <- (Meta %*% M.migra) * d.spp * FF
-
-      # Calculate interspecific competition overlap if Alfa is provided
-      if (!is.null(Alfa)) {
-        overlap       <- Alfa %*% Meta
-        overlap       <- sweep(overlap, 2, colSums(overlap), FUN = "/")
-        Pool.neighbor <- Pool.neighbor * (1 - overlap)
-      }
-
-      # Assign new individuals to available spaces
-      if (length(id.j) > 1) {
-        new <- apply(Pool.neighbor[, id.j], 2, born, dead.by.it = 1, M.pool = Meta.pool, m.pool = m.pool)
-        Meta[, id.j] <- Meta[, id.j] + new
-      } else {
-        Meta[, id.j] <- Meta[, id.j] + born(n = Pool.neighbor[, id.j], dead.by.it = 1, M.pool = Meta.pool, m.pool = m.pool)
-      }
-
-      if(verbose){ cat("Coalescent construction in J:", ii, "of", max(Js), "\n") }
-    }
-
-  } else {
-    # Bypass coalescent phase and directly adopt the user-supplied community matrix
-    Meta <- init.comm
-    if (verbose) { cat("Bypassing Coalescent Phase. Simulation loaded with user custom 'init.comm'.\n") }
   }
 
+  # If initial community is provided, this becames the new metacommunity matrix
+  if (!is.null(init.comm)) {
+    Meta <- init.comm
+  }
+
+  # Loop over communities to perform the coalescent assembly
+  for (ii in 1:max(Js)) {
+
+    # Target communities that are under capacity AND whose current individual count is below ii
+    id.j <- which(colSums(Meta) < Js & colSums(Meta) < ii)
+
+    # Exclude fixed communities from receiving random individuals (they are managed below)
+    if (!is.null(id.fixed)) {
+      id.j <- setdiff(id.j, id.fixed)
+    }
+
+    # Check: if no communities need an individual in this step, skip to next iteration
+    if (length(id.j) == 0){next}
+
+    # Keep fixed communities scaled to current global abundance level
+    if (!is.null(id.fixed)) {
+      for (idx in seq_along(id.fixed)) {
+        f_id <- id.fixed[idx]
+        current_profile <- if (is.matrix(comm.fixed)) comm.fixed[, idx] else comm.fixed
+        Meta[, f_id] <- current_profile * min(ii - 1, Js[f_id])
+      }
+    }
+
+    # Calculate potential recruits based on local abundance and spatial migration
+    Pool.neighbor <- (Meta %*% M.migra) * d.spp * FF
+
+    # Calculate interspecific competition overlap (this is skipped if Alfa is NULL)
+    if (!is.null(Alfa)) {
+      overlap <- Alfa %*% Meta
+      col_sums_overlap <- colSums(overlap)
+      col_sums_overlap[col_sums_overlap == 0] <- 1
+      overlap <- sweep(overlap, 2, col_sums_overlap, FUN = "/")
+      Pool.neighbor <- Pool.neighbor * (1 - overlap)
+    }
+
+    # If Pool.neighbor drops to 0, use regional pool layout as fallback
+    col_sums_coalescent <- colSums(Pool.neighbor)
+    if (any(col_sums_coalescent == 0)) {
+      zero_cols <- which(col_sums_coalescent == 0)
+      for (zc in zero_cols) {
+        Pool.neighbor[, zc] <- Meta.pool
+      }
+    }
+
+    # Assign new individuals to available spaces
+    if (length(id.j) > 1) {
+      new <- apply(Pool.neighbor[, id.j, drop = FALSE], 2, born, dead.by.it = 1, M.pool = Meta.pool, m.pool = m.pool)
+      Meta[, id.j] <- Meta[, id.j] + new
+    } else {
+      Meta[, id.j] <- Meta[, id.j] + born(n = Pool.neighbor[, id.j], dead.by.it = 1, M.pool = Meta.pool, m.pool = m.pool)
+    }
+
+    if(verbose){ cat("coalescent construction in J:", ii, "of", max(Js), "\n") }
+  }
 
   #### 5. LOTTERY DYNAMICS ####
   if (lottery) {
@@ -212,9 +234,13 @@ masterEqMetacomm <- function(Meta.pool,
     # Mirror state for community memory tracking
     Meta.lag <- Meta
 
-    # Set fixed communities to maximum carrying capacity
+    # Set fixed communities safely scaled to their local individual capacities (Js)
     if (!is.null(id.fixed)) {
-      Meta[, id.fixed] <- round(comm.fixed * max(Js), 0)
+      for (idx in seq_along(id.fixed)) {
+        f_id <- id.fixed[idx]
+        current_profile <- if (is.matrix(comm.fixed)) comm.fixed[, idx] else comm.fixed
+        Meta[, f_id] <- round(current_profile * Js[f_id], 0)
+      }
     }
 
     # Generate timeline checkpoints
@@ -249,10 +275,12 @@ masterEqMetacomm <- function(Meta.pool,
       # Factor in community memory matrix element-wise
       Pool.neighbor <- Pool.neighbor * (1 - m.temp) + Meta.lag * (m.temp)
 
-      # Re-evaluate competitive structural overlap if Alfa is provided
+      # Re-calculate interspecific competition overlap (this is skipped if Alfa is NULL)
       if (!is.null(Alfa)) {
-        overlap       <- Alfa %*% Meta
-        overlap       <- sweep(overlap, 2, colSums(overlap), FUN = "/")
+        overlap <- Alfa %*% Meta
+        col_sums_overlap <- colSums(overlap)
+        col_sums_overlap[col_sums_overlap == 0] <- 1
+        overlap <- sweep(overlap, 2, col_sums_overlap, FUN = "/")
         Pool.neighbor <- Pool.neighbor * (1 - overlap)
       }
 
@@ -268,7 +296,7 @@ masterEqMetacomm <- function(Meta.pool,
         Meta[, i] <- Meta[, i] + stats::rmultinom(1, size = dead.by.it[i], prob = Prob.mat[, i])
       }
 
-      if(verbose){ cat("Lottery iteration", iteration, "of", it, "\n")}
+      if(verbose){ cat("lottery iteration", iteration, "of", it, "\n")}
     }
   }
 

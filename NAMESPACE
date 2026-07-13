@@ -2,4 +2,8 @@
 
 export(dynamicMetacomm)
 export(masterEqMetacomm)
+export(replicateDynamicMetacomm)
+import(future)
+importFrom(future.apply,future_lapply)
+importFrom(parallel,detectCores)
 importFrom(stats,rmultinom)

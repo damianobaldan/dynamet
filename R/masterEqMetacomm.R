@@ -5,8 +5,8 @@
 #' network of local communities. It initiates patches using a coalescent
 #' process up to local carrying capacities (\code{Js}). Then, an optional neutral/niche
 #' lottery dynamic is used to simulate metacommunities. The simulation incorporates spatial migration, regional pool
-#' immigration, self-recruitment, species-specific dispersal constraints, environmental filtering,
-#' interspecific competition (\code{}), and temperature-dependent mortality
+#' immigration, self-recruitment, species-specific dispersal constraints (\code{d.spp}), environmental filtering (\code{FF}),
+#' interspecific competition (\code{alpha}), and temperature-dependent mortality
 #' scaled via the Arrhenius equation.
 #'
 #' @param Meta.pool A numeric vector of length S representing the relative abundances
@@ -64,23 +64,23 @@ masterEqMetacomm <- function(Meta.pool, Js, M.migra, m.pool, d.spp = NULL,
 
 
   #### 1. VALIDATE INPUTS ####
-
-  validateMetaInputs(Meta.pool = Meta.pool,
-                     d.spp = d.spp,
-                     FF = FF,
-                     m.pool = m.pool,
-                     Js = Js,
-                     M.migra = M.migra,
-                     id.fixed = id.fixed,
-                     comm.fixed = comm.fixed,
-                     init.comm = init.comm,
-                     lottery = lottery,
-                     nIterations = nIterations,
-                     prop.dead.by.it = prop.dead.by.it,
-                     Ea = Ea,
-                     Ts = Ts,
-                     m.temp = m.temp,
-                     alpha = alpha
+  validateMetaInputs(
+    Meta.pool       = Meta.pool,
+    Js              = Js,
+    M.migra         = M.migra,
+    m.pool          = m.pool,
+    d.spp           = d.spp,
+    FF              = FF,
+    Alfa            = Alfa,
+    init.comm       = init.comm,
+    id.fixed        = id.fixed,
+    comm.fixed      = comm.fixed,
+    prop.dead.by.it = prop.dead.by.it,
+    Ea              = Ea,
+    Ts              = Ts,
+    m.temp          = m.temp,
+    lottery         = lottery,
+    nIterations     = nIterations
   )
 
   #### 2. INITIALIZATION AND DATA NORMALIZATION ####

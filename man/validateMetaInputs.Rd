@@ -6,27 +6,35 @@
 \usage{
 validateMetaInputs(
   Meta.pool,
+  Js,
+  M.migra,
+  m.pool,
   d.spp,
   FF = NULL,
-  m.pool,
-  Js,
-  M.migra = NULL,
+  Alfa = NULL,
+  init.comm = NULL,
   id.fixed = NULL,
   comm.fixed = NULL,
-  init.comm,
-  lottery,
-  nIterations,
   prop.dead.by.it,
-  id.obs = NULL,
   Ea,
   Ts,
   m.temp = NULL,
-  alpha = NULL
+  lottery,
+  nIterations
 )
 }
 \arguments{
 \item{Meta.pool}{A numeric vector of length S representing the relative abundances
 or probabilities of species within the regional species pool.}
+
+\item{Js}{A numeric vector of length C setting the local carrying capacity (total
+individual slots) for each community patch.}
+
+\item{M.migra}{A square numeric matrix of dimensions C x C establishing spatial
+migration connectivity and dispersal probabilities between patches. Cannot be NULL.}
+
+\item{m.pool}{A single numeric value between 0 and 1 defining the probability of
+recruitment originating from the global regional pool rather than local/neighboring sources.}
 
 \item{d.spp}{An optional numeric vector of length S dictating species-specific dispersal traits.
 If \code{NULL} (default), it is treated as a vector of 1s (equal dispersal ability for all species).}
@@ -35,14 +43,8 @@ If \code{NULL} (default), it is treated as a vector of 1s (equal dispersal abili
 filtering filters. Individual coefficients must range between 0 and 1, where 1 indicates
 perfect environmental match (no filtering penalty). If \code{NULL} (default), no environmental filtering is applied.}
 
-\item{m.pool}{A single numeric value between 0 and 1 defining the probability of
-recruitment originating from the global regional pool rather than local/neighboring sources.}
-
-\item{Js}{A numeric vector of length C setting the local carrying capacity (total
-individual slots) for each community patch.}
-
-\item{M.migra}{A square numeric matrix of dimensions C x C establishing spatial
-migration connectivity and dispersal probabilities between patches. Cannot be NULL.}
+\item{init.comm}{An optional numeric matrix of dimensions S x C representing the custom
+starting abundance counts for all species across patches. Required if \code{coalescence = FALSE}.}
 
 \item{id.fixed}{An optional numeric vector containing indices of communities whose
 compositions are static and locked during simulation steps.}
@@ -51,15 +53,6 @@ compositions are static and locked during simulation steps.}
 abundance profile assigned to the patches listed in \code{id.fixed}. These relative
 abundances are automatically scaled to the specific local carrying capacity (\code{Js})
 of each fixed patch.}
-
-\item{init.comm}{An optional numeric matrix of dimensions S x C representing the custom
-starting abundance counts for all species across patches. Required if \code{coalescence = FALSE}.}
-
-\item{lottery}{A single logical value. If \code{TRUE}, triggers the demographic turnover
-iterative lottery phase after initial community assembly.}
-
-\item{nIterations}{A single numeric integer specifying the total timeline steps/iterations to
-run inside the lottery loop.}
 
 \item{prop.dead.by.it}{A numeric fraction (0, 1) defining the baseline mortality
 turnover rate for the coldest patch.}
@@ -73,8 +66,11 @@ expressed strictly in Kelvin units (> 0).}
 \item{m.temp}{An optional numeric vector of length C, or a matrix of dimensions S x C,
 dictating community memory weight parameters (e.g., local seed banks or persistent vegetative state).}
 
-\item{alpha}{An optional square numeric matrix of dimensions S x S defining interspecific
-competition coefficients between all pairs of species. If \code{NULL} (default), no interspecific competition is applied.}
+\item{lottery}{A single logical value. If \code{TRUE}, triggers the demographic turnover
+iterative lottery phase after initial community assembly.}
+
+\item{nIterations}{A single numeric integer specifying the total timeline steps/iterations to
+run inside the lottery loop.}
 }
 \description{
 Validate the inputs for masterEqMetacomm

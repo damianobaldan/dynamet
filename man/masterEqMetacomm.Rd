@@ -88,8 +88,8 @@ This function models metacommunity assembly and demographic turnover across a
 network of local communities. It initiates patches using a coalescent
 process up to local carrying capacities (\code{Js}). Then, an optional neutral/niche
 lottery dynamic is used to simulate metacommunities. The simulation incorporates spatial migration, regional pool
-immigration, self-recruitment, species-specific dispersal constraints, environmental filtering,
-interspecific competition (\code{}), and temperature-dependent mortality
+immigration, self-recruitment, species-specific dispersal constraints (\code{d.spp}), environmental filtering (\code{FF}),
+interspecific competition (\code{alpha}), and temperature-dependent mortality
 scaled via the Arrhenius equation.
 }
 \author{

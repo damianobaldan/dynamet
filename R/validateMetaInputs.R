@@ -5,22 +5,21 @@
 #'
 validateMetaInputs <- function(
     Meta.pool,
+    Js,
+    M.migra,
+    m.pool,
     d.spp,
     FF = NULL,
-    m.pool,
-    Js,
-    M.migra = NULL,
+    Alfa = NULL,
+    init.comm = NULL,
     id.fixed = NULL,
     comm.fixed = NULL,
-    init.comm,
-    lottery,
-    nIterations,
     prop.dead.by.it,
-    id.obs = NULL,
     Ea,
     Ts,
     m.temp = NULL,
-    alpha = NULL) {
+    lottery,
+    nIterations) {
 
   # ----------------------------------------------------------------------------
   # 1. CLASS AND TYPE VALIDATIONS

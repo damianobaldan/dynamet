@@ -106,7 +106,6 @@ masterEqMetacomm <- function(Meta.pool,
   Meta.pool  <- Meta.pool / sum(Meta.pool)
 
   # Normalize comm.fixed if it is not NULL
-  # Normalize comm.fixed if it is not NULL
   if (!is.null(comm.fixed)) {
     if (is.matrix(comm.fixed)) {
       # If matrix: sweep through and normalize each column independently

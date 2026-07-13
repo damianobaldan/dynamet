@@ -2,25 +2,26 @@
 % Please edit documentation in R/validateMetaInputs.R
 \name{validateMetaInputs}
 \alias{validateMetaInputs}
-\title{function to validate the inputs}
+\title{Validate the inputs for masterEqMetacomm}
 \usage{
 validateMetaInputs(
   Meta.pool,
   d.spp,
-  FF,
+  FF = NULL,
   m.pool,
   Js,
   M.migra = NULL,
   id.fixed = NULL,
   comm.fixed = NULL,
-  Lottery,
+  init.comm,
+  lottery,
   it,
   prop.dead.by.it,
   id.obs = NULL,
   Ea,
   Ts,
   m.temp = NULL,
-  Alfa
+  Alfa = NULL
 )
 }
 \arguments{
@@ -30,9 +31,9 @@ or probabilities of species within the regional species pool.}
 \item{d.spp}{A numeric vector of length S dictating species-specific dispersal traits
 or regional recruitment constraints.}
 
-\item{FF}{A numeric matrix of dimensions S x C representing local environmental
+\item{FF}{An optional numeric matrix of dimensions S x C representing local environmental
 filtering filters. Individual coefficients must range between 0 and 1, where 1 indicates
-perfect environmental match (no filtering penalty).}
+perfect environmental match (no filtering penalty). If \code{NULL} (default), no environmental filtering is applied.}
 
 \item{m.pool}{A single numeric value between 0 and 1 defining the probability of
 recruitment originating from the global regional pool rather than local/neighboring sources.}
@@ -47,9 +48,14 @@ migration connectivity and dispersal probabilities between patches. Cannot be NU
 compositions are static and locked during simulation steps.}
 
 \item{comm.fixed}{An optional numeric vector of length S outlining the fixed relative
-abundance profile assigned to the patches listed in \code{id.fixed}.}
+abundance profile assigned to the patches listed in \code{id.fixed}. These relative
+abundances are automatically scaled to the specific local carrying capacity (\code{Js})
+of each fixed patch.}
 
-\item{Lottery}{A single logical value. If \code{TRUE}, triggers the demographic turnover
+\item{init.comm}{An optional numeric matrix of dimensions S x C representing the custom
+starting abundance counts for all species across patches. Required if \code{coalescence = FALSE}.}
+
+\item{lottery}{A single logical value. If \code{TRUE}, triggers the demographic turnover
 iterative lottery phase after initial community assembly.}
 
 \item{it}{A single numeric integer specifying the total timeline steps/iterations to
@@ -57,9 +63,6 @@ run inside the lottery loop.}
 
 \item{prop.dead.by.it}{A single numeric fraction (0, 1) defining the baseline mortality
 turnover rate, anchored at the coldest patch.}
-
-\item{id.obs}{An optional numeric vector of community indices reserved for observation,
-validation, or structural tracking.}
 
 \item{Ea}{A single numeric value representing the activation energy (in eV) utilized to
 scale temperature-driven mortality.}
@@ -70,10 +73,10 @@ expressed strictly in Kelvin units (> 0).}
 \item{m.temp}{An optional numeric vector of length C, or a matrix of dimensions S x C,
 dictating community memory weight parameters (e.g., local seed banks or persistent vegetative state).}
 
-\item{Alfa}{A square numeric matrix of dimensions S x S defining interspecific
-competition coefficients between all pairs of species.}
+\item{Alfa}{An optional square numeric matrix of dimensions S x S defining interspecific
+competition coefficients between all pairs of species. If \code{NULL} (default), no interspecific competition is applied.}
 }
 \description{
-function to validate the inputs
+Validate the inputs for masterEqMetacomm
 }
 \keyword{internal}

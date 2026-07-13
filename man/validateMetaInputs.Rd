@@ -11,7 +11,7 @@ validateMetaInputs(
   m.pool,
   d.spp,
   FF = NULL,
-  Alfa = NULL,
+  alpha = NULL,
   init.comm = NULL,
   id.fixed = NULL,
   comm.fixed = NULL,
@@ -42,6 +42,9 @@ If \code{NULL} (default), it is treated as a vector of 1s (equal dispersal abili
 \item{FF}{An optional numeric matrix of dimensions S x C representing local environmental
 filtering filters. Individual coefficients must range between 0 and 1, where 1 indicates
 perfect environmental match (no filtering penalty). If \code{NULL} (default), no environmental filtering is applied.}
+
+\item{alpha}{An optional square numeric matrix of dimensions S x S defining interspecific
+competition coefficients between all pairs of species. If \code{NULL} (default), no interspecific competition is applied.}
 
 \item{init.comm}{An optional numeric matrix of dimensions S x C representing the custom
 starting abundance counts for all species across patches. Required if \code{coalescence = FALSE}.}

@@ -10,7 +10,7 @@ validateMetaInputs <- function(
     m.pool,
     d.spp,
     FF = NULL,
-    Alfa = NULL,
+    alpha = NULL,
     init.comm = NULL,
     id.fixed = NULL,
     comm.fixed = NULL,
@@ -26,7 +26,7 @@ validateMetaInputs <- function(
   # ----------------------------------------------------------------------------
   if (!is.numeric(m.pool) || length(m.pool) != 1) stop("'m.pool' must be a single numeric value.")
   if (!is.logical(lottery) || length(lottery) != 1) stop("'lottery' must be a single logical value.")
-  if (!is.numeric(it) || length(it) != 1) stop("'it' must be a single numeric integer.")
+  if (!is.numeric(nIterations) || length(nIterations) != 1) stop("'nIterations' must be a single numeric integer.")
   if (!is.numeric(prop.dead.by.it) || length(prop.dead.by.it) != 1) stop("'prop.dead.by.it' must be a single numeric fraction.")
   if (!is.numeric(Ea) || length(Ea) != 1) stop("'Ea' must be a single numeric value.")
 
@@ -53,7 +53,6 @@ validateMetaInputs <- function(
 
   if (!is.null(M.migra) && (!is.matrix(M.migra) || !is.numeric(M.migra))) stop("'M.migra' must be a numeric matrix.")
   if (!is.null(id.fixed) && !is.numeric(id.fixed)) stop("'id.fixed' must be a numeric vector.")
-  if (!is.null(id.obs) && !is.numeric(id.obs))     stop("'id.obs' contains invalid non-numeric values.")
   if (!is.null(m.temp) && !is.numeric(m.temp))     stop("'m.temp' must be a numeric vector or matrix.")
 
   # ----------------------------------------------------------------------------
@@ -102,13 +101,12 @@ validateMetaInputs <- function(
   }
 
   if (!is.null(id.fixed) && (any(id.fixed < 1) || any(id.fixed > C))) stop("'id.fixed' contains out-of-bounds community indices.")
-  if (!is.null(id.obs) && (any(id.obs < 1) || any(id.obs > C)))     stop("'id.obs' contains out-of-bounds community indices.")
 
   # ----------------------------------------------------------------------------
   # 3. VALUE AND BOUNDARY CONSTRAINTS (Includes Zero-Sum / NaN Protections)
   # ----------------------------------------------------------------------------
   # Missing data sweep
-  all_inputs <- list(Meta.pool, d.spp, m.pool, Js, M.migra, it, prop.dead.by.it, Ea, Ts)
+  all_inputs <- list(Meta.pool, d.spp, m.pool, Js, M.migra, nIterations, prop.dead.by.it, Ea, Ts)
   if (any(sapply(all_inputs, function(x) any(is.na(x))))) stop("Value error: Missing values (NA/NaN) detected in primary inputs.")
   if (!is.null(FF) && any(is.na(FF))) stop("Value error: Missing values (NA/NaN) detected in matrix 'FF'.")
   if (!is.null(alpha) && any(is.na(alpha))) stop("Value error: Missing values (NA/NaN) detected in matrix 'alpha'.")
@@ -136,7 +134,7 @@ validateMetaInputs <- function(
   if (m.pool < 0 || m.pool > 1)                     stop("'m.pool' regional immigration rate must be between 0 and 1.")
   if (prop.dead.by.it <= 0 || prop.dead.by.it >= 1) stop("'prop.dead.by.it' baseline mortality fraction must be between 0 and 1.")
   if (any(Js <= 0))                                 stop("Carrying capacities in 'Js' must be strictly positive integers.")
-  if (it <= 0)                                      stop("Number of lottery iterations 'it' must be a positive integer.")
+  if (nIterations <= 0)                             stop("Number of lottery iterations 'it' must be a positive integer.")
 
   # Enforce strict probability bounds on FF and catch all-zero crash conditions
   if (!is.null(FF)) {

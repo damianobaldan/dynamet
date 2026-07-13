@@ -15,21 +15,21 @@ validateMetaInputs(
   comm.fixed = NULL,
   init.comm,
   lottery,
-  it,
+  nIterations,
   prop.dead.by.it,
   id.obs = NULL,
   Ea,
   Ts,
   m.temp = NULL,
-  Alfa = NULL
+  alpha = NULL
 )
 }
 \arguments{
 \item{Meta.pool}{A numeric vector of length S representing the relative abundances
 or probabilities of species within the regional species pool.}
 
-\item{d.spp}{A numeric vector of length S dictating species-specific dispersal traits
-or regional recruitment constraints.}
+\item{d.spp}{An optional numeric vector of length S dictating species-specific dispersal traits.
+If \code{NULL} (default), it is treated as a vector of 1s (equal dispersal ability for all species).}
 
 \item{FF}{An optional numeric matrix of dimensions S x C representing local environmental
 filtering filters. Individual coefficients must range between 0 and 1, where 1 indicates
@@ -58,13 +58,13 @@ starting abundance counts for all species across patches. Required if \code{coal
 \item{lottery}{A single logical value. If \code{TRUE}, triggers the demographic turnover
 iterative lottery phase after initial community assembly.}
 
-\item{it}{A single numeric integer specifying the total timeline steps/iterations to
+\item{nIterations}{A single numeric integer specifying the total timeline steps/iterations to
 run inside the lottery loop.}
 
-\item{prop.dead.by.it}{A single numeric fraction (0, 1) defining the baseline mortality
-turnover rate, anchored at the coldest patch.}
+\item{prop.dead.by.it}{A numeric fraction (0, 1) defining the baseline mortality
+turnover rate for the coldest patch.}
 
-\item{Ea}{A single numeric value representing the activation energy (in eV) utilized to
+\item{Ea}{A numeric value representing the activation energy (in eV) utilized to
 scale temperature-driven mortality.}
 
 \item{Ts}{A numeric vector of length C specifying the local patch ambient temperatures
@@ -73,7 +73,7 @@ expressed strictly in Kelvin units (> 0).}
 \item{m.temp}{An optional numeric vector of length C, or a matrix of dimensions S x C,
 dictating community memory weight parameters (e.g., local seed banks or persistent vegetative state).}
 
-\item{Alfa}{An optional square numeric matrix of dimensions S x S defining interspecific
+\item{alpha}{An optional square numeric matrix of dimensions S x S defining interspecific
 competition coefficients between all pairs of species. If \code{NULL} (default), no interspecific competition is applied.}
 }
 \description{

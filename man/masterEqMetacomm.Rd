@@ -6,21 +6,21 @@
 \usage{
 masterEqMetacomm(
   Meta.pool,
-  d.spp,
-  FF = NULL,
-  m.pool,
   Js,
   M.migra,
+  m.pool,
+  d.spp = NULL,
+  FF = NULL,
+  alpha = NULL,
+  init.comm = NULL,
   id.fixed = NULL,
   comm.fixed = NULL,
-  init.comm = NULL,
-  lottery = TRUE,
-  it = 100,
   prop.dead.by.it = 0.05,
   Ea = 1e-05,
   Ts = 293.15,
   m.temp = 0,
-  Alfa = NULL,
+  lottery = TRUE,
+  nIterations = 100,
   verbose = TRUE
 )
 }
@@ -28,21 +28,27 @@ masterEqMetacomm(
 \item{Meta.pool}{A numeric vector of length S representing the relative abundances
 or probabilities of species within the regional species pool.}
 
-\item{d.spp}{A numeric vector of length S dictating species-specific dispersal traits
-or regional recruitment constraints.}
-
-\item{FF}{An optional numeric matrix of dimensions S x C representing local environmental
-filtering filters. Individual coefficients must range between 0 and 1, where 1 indicates
-perfect environmental match (no filtering penalty). If \code{NULL} (default), no environmental filtering is applied.}
-
-\item{m.pool}{A single numeric value between 0 and 1 defining the probability of
-recruitment originating from the global regional pool rather than local/neighboring sources.}
-
 \item{Js}{A numeric vector of length C setting the local carrying capacity (total
 individual slots) for each community patch.}
 
 \item{M.migra}{A square numeric matrix of dimensions C x C establishing spatial
 migration connectivity and dispersal probabilities between patches. Cannot be NULL.}
+
+\item{m.pool}{A single numeric value between 0 and 1 defining the probability of
+recruitment originating from the global regional pool rather than local/neighboring sources.}
+
+\item{d.spp}{An optional numeric vector of length S dictating species-specific dispersal traits.
+If \code{NULL} (default), it is treated as a vector of 1s (equal dispersal ability for all species).}
+
+\item{FF}{An optional numeric matrix of dimensions S x C representing local environmental
+filtering filters. Individual coefficients must range between 0 and 1, where 1 indicates
+perfect environmental match (no filtering penalty). If \code{NULL} (default), no environmental filtering is applied.}
+
+\item{alpha}{An optional square numeric matrix of dimensions S x S defining interspecific
+competition coefficients between all pairs of species. If \code{NULL} (default), no interspecific competition is applied.}
+
+\item{init.comm}{An optional numeric matrix of dimensions S x C representing the custom
+starting abundance counts for all species across patches. Required if \code{coalescence = FALSE}.}
 
 \item{id.fixed}{An optional numeric vector containing indices of communities whose
 compositions are static and locked during simulation steps.}
@@ -52,19 +58,10 @@ abundance profile assigned to the patches listed in \code{id.fixed}. These relat
 abundances are automatically scaled to the specific local carrying capacity (\code{Js})
 of each fixed patch.}
 
-\item{init.comm}{An optional numeric matrix of dimensions S x C representing the custom
-starting abundance counts for all species across patches. Required if \code{coalescence = FALSE}.}
+\item{prop.dead.by.it}{A numeric fraction (0, 1) defining the baseline mortality
+turnover rate for the coldest patch.}
 
-\item{lottery}{A single logical value. If \code{TRUE}, triggers the demographic turnover
-iterative lottery phase after initial community assembly.}
-
-\item{it}{A single numeric integer specifying the total timeline steps/iterations to
-run inside the lottery loop.}
-
-\item{prop.dead.by.it}{A single numeric fraction (0, 1) defining the baseline mortality
-turnover rate, anchored at the coldest patch.}
-
-\item{Ea}{A single numeric value representing the activation energy (in eV) utilized to
+\item{Ea}{A numeric value representing the activation energy (in eV) utilized to
 scale temperature-driven mortality.}
 
 \item{Ts}{A numeric vector of length C specifying the local patch ambient temperatures
@@ -73,8 +70,11 @@ expressed strictly in Kelvin units (> 0).}
 \item{m.temp}{An optional numeric vector of length C, or a matrix of dimensions S x C,
 dictating community memory weight parameters (e.g., local seed banks or persistent vegetative state).}
 
-\item{Alfa}{An optional square numeric matrix of dimensions S x S defining interspecific
-competition coefficients between all pairs of species. If \code{NULL} (default), no interspecific competition is applied.}
+\item{lottery}{A single logical value. If \code{TRUE}, triggers the demographic turnover
+iterative lottery phase after initial community assembly.}
+
+\item{nIterations}{A single numeric integer specifying the total timeline steps/iterations to
+run inside the lottery loop.}
 
 \item{verbose}{A single logical value. If \code{TRUE} (default), outputs live processing
 milestones and loop updates to the console.}
@@ -89,7 +89,7 @@ network of local communities. It initiates patches using a coalescent
 process up to local carrying capacities (\code{Js}). Then, an optional neutral/niche
 lottery dynamic is used to simulate metacommunities. The simulation incorporates spatial migration, regional pool
 immigration, self-recruitment, species-specific dispersal constraints, environmental filtering,
-interspecific competition (\code{Alfa}), and temperature-dependent mortality
+interspecific competition (\code{}), and temperature-dependent mortality
 scaled via the Arrhenius equation.
 }
 \author{

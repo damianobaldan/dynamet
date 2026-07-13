@@ -14,13 +14,13 @@ validateMetaInputs <- function(
     comm.fixed = NULL,
     init.comm,
     lottery,
-    it,
+    nIterations,
     prop.dead.by.it,
     id.obs = NULL,
     Ea,
     Ts,
     m.temp = NULL,
-    Alfa = NULL) {
+    alpha = NULL) {
 
   # ----------------------------------------------------------------------------
   # 1. CLASS AND TYPE VALIDATIONS
@@ -37,7 +37,7 @@ validateMetaInputs <- function(
   if (!is.numeric(Ts))         stop("'Ts' must be a numeric vector.")
 
   if (!is.null(FF) && (!is.matrix(FF) || !is.numeric(FF)))     stop("'FF' must be a numeric matrix.")
-  if (!is.null(Alfa) && (!is.matrix(Alfa) || !is.numeric(Alfa))) stop("'Alfa' must be a numeric matrix.")
+  if (!is.null(alpha) && (!is.matrix(alpha) || !is.numeric(alpha))) stop("'alpha' must be a numeric matrix.")
 
   # Configuration cross-dependence safety
   if (!is.null(id.fixed) && is.null(comm.fixed)) {
@@ -66,7 +66,7 @@ validateMetaInputs <- function(
   # Species-dimension alignments (Rows)
   if (length(d.spp) != S) stop(sprintf("Dimension mismatch: 'd.spp' length (%d) must match 'Meta.pool' (%d).", length(d.spp), S))
   if (!is.null(FF) && nrow(FF) != S)       stop(sprintf("Dimension mismatch: Environmental filter matrix 'FF' must have %d rows (Species).", S))
-  if (!is.null(Alfa) && (nrow(Alfa) != S || ncol(Alfa) != S)) stop(sprintf("Dimension mismatch: Interspecific competition matrix 'Alfa' must be a square matrix of %d x %d.", S, S))
+  if (!is.null(alpha) && (nrow(alpha) != S || ncol(alpha) != S)) stop(sprintf("Dimension mismatch: Interspecific competition matrix 'alpha' must be a square matrix of %d x %d.", S, S))
 
   # Matrix/Vector dimension handler for comm.fixed
   if (!is.null(comm.fixed)) {
@@ -112,12 +112,12 @@ validateMetaInputs <- function(
   all_inputs <- list(Meta.pool, d.spp, m.pool, Js, M.migra, it, prop.dead.by.it, Ea, Ts)
   if (any(sapply(all_inputs, function(x) any(is.na(x))))) stop("Value error: Missing values (NA/NaN) detected in primary inputs.")
   if (!is.null(FF) && any(is.na(FF))) stop("Value error: Missing values (NA/NaN) detected in matrix 'FF'.")
-  if (!is.null(Alfa) && any(is.na(Alfa))) stop("Value error: Missing values (NA/NaN) detected in matrix 'Alfa'.")
+  if (!is.null(alpha) && any(is.na(alpha))) stop("Value error: Missing values (NA/NaN) detected in matrix 'alpha'.")
   if (!is.null(m.temp) && any(is.na(m.temp))) stop("Value error: Missing values (NA/NaN) detected in 'm.temp'.")
 
   # Dispersal vector (d.spp) safeguards
   if (any(d.spp < 0)) stop("Value error: Dispersal coefficients in 'd.spp' cannot be negative.")
-  if (sum(d.spp) == 0) stop("Mathematical error: 'd.spp' cannot sum to zero. Use a vector of 1s for a neutral effect.")
+  if (sum(d.spp) == 0) stop("Mathematical error: 'd.spp' cannot sum to zero. Use a vector of 1s for a neutral effect or set 'd.spp = NULL'.")
 
   # Regional pool safeguards
   if (any(Meta.pool < 0)) stop("Value error: Relative abundances in 'Meta.pool' cannot be negative.")
@@ -147,11 +147,11 @@ validateMetaInputs <- function(
     }
   }
 
-  # Competition matrix (Alfa) safeguards
-  if (!is.null(Alfa)) {
-    if (any(Alfa < 0)) stop("Value error: Competition coefficients in 'Alfa' cannot be negative.")
-    if (all(Alfa == 0)) {
-      stop("Mathematical error: 'Alfa' cannot be a matrix of all zeros (causes a 0/0 NaN loop crash). Set 'Alfa = NULL' or use a matrix of 1s to remove the effect.")
+  # Competition matrix (alpha) safeguards
+  if (!is.null(alpha)) {
+    if (any(alpha < 0)) stop("Value error: Competition coefficients in 'alpha' cannot be negative.")
+    if (all(alpha == 0)) {
+      stop("Mathematical error: 'alpha' cannot be a matrix of all zeros (causes a 0/0 NaN loop crash). Set 'alpha = NULL' or use a matrix of 1s to remove the effect.")
     }
   }
 

@@ -29,7 +29,9 @@ dynamicMetacomm <- function(nEpochs, ..., init.comm = NULL) {
   for (i in 1:nEpochs) {
 
     # Print current epoch
-    message(sprintf("Running Epoch %d of %d...", i, nEpochs))
+    if(args_list$verbose){
+      message(sprintf("Running Epoch %d of %d...", i, nEpochs))
+    }
 
     # Construct arguments for this specific epoch:
     # apply function that checks if the argument is a list and

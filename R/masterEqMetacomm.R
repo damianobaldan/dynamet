@@ -6,44 +6,44 @@
 #' process up to local carrying capacities (\code{Js}). Then, an optional neutral/niche
 #' lottery dynamic is used to simulate metacommunities. The simulation incorporates spatial migration, regional pool
 #' immigration, self-recruitment, species-specific dispersal constraints, environmental filtering,
-#' interspecific competition (\code{Alfa}), and temperature-dependent mortality
+#' interspecific competition (\code{}), and temperature-dependent mortality
 #' scaled via the Arrhenius equation.
 #'
 #' @param Meta.pool A numeric vector of length S representing the relative abundances
 #'   or probabilities of species within the regional species pool.
-#' @param d.spp A numeric vector of length S dictating species-specific dispersal traits
-#'   or regional recruitment constraints.
-#' @param FF An optional numeric matrix of dimensions S x C representing local environmental
-#'   filtering filters. Individual coefficients must range between 0 and 1, where 1 indicates
-#'   perfect environmental match (no filtering penalty). If \code{NULL} (default), no environmental filtering is applied.
-#' @param m.pool A single numeric value between 0 and 1 defining the probability of
-#'   recruitment originating from the global regional pool rather than local/neighboring sources.
 #' @param Js A numeric vector of length C setting the local carrying capacity (total
 #'   individual slots) for each community patch.
 #' @param M.migra A square numeric matrix of dimensions C x C establishing spatial
 #'   migration connectivity and dispersal probabilities between patches. Cannot be NULL.
+#' @param m.pool A single numeric value between 0 and 1 defining the probability of
+#'   recruitment originating from the global regional pool rather than local/neighboring sources.
+#' @param d.spp An optional numeric vector of length S dictating species-specific dispersal traits.
+#'   If \code{NULL} (default), it is treated as a vector of 1s (equal dispersal ability for all species).
+#' @param FF An optional numeric matrix of dimensions S x C representing local environmental
+#'   filtering filters. Individual coefficients must range between 0 and 1, where 1 indicates
+#'   perfect environmental match (no filtering penalty). If \code{NULL} (default), no environmental filtering is applied.
+#' @param alpha An optional square numeric matrix of dimensions S x S defining interspecific
+#'   competition coefficients between all pairs of species. If \code{NULL} (default), no interspecific competition is applied.
+#' @param init.comm An optional numeric matrix of dimensions S x C representing the custom
+#'   starting abundance counts for all species across patches. Required if \code{coalescence = FALSE}.
 #' @param id.fixed An optional numeric vector containing indices of communities whose
 #'   compositions are static and locked during simulation steps.
 #' @param comm.fixed An optional numeric vector of length S outlining the fixed relative
 #'   abundance profile assigned to the patches listed in \code{id.fixed}. These relative
 #'   abundances are automatically scaled to the specific local carrying capacity (\code{Js})
 #'   of each fixed patch.
-#' @param init.comm An optional numeric matrix of dimensions S x C representing the custom
-#'   starting abundance counts for all species across patches. Required if \code{coalescence = FALSE}.
-#' @param lottery A single logical value. If \code{TRUE}, triggers the demographic turnover
-#'   iterative lottery phase after initial community assembly.
-#' @param it A single numeric integer specifying the total timeline steps/iterations to
-#'   run inside the lottery loop.
-#' @param prop.dead.by.it A single numeric fraction (0, 1) defining the baseline mortality
-#'   turnover rate, anchored at the coldest patch.
-#' @param Ea A single numeric value representing the activation energy (in eV) utilized to
+#' @param prop.dead.by.it A numeric fraction (0, 1) defining the baseline mortality
+#'   turnover rate for the coldest patch.
+#' @param Ea A numeric value representing the activation energy (in eV) utilized to
 #'   scale temperature-driven mortality.
 #' @param Ts A numeric vector of length C specifying the local patch ambient temperatures
 #'   expressed strictly in Kelvin units (> 0).
 #' @param m.temp An optional numeric vector of length C, or a matrix of dimensions S x C,
 #'   dictating community memory weight parameters (e.g., local seed banks or persistent vegetative state).
-#' @param Alfa An optional square numeric matrix of dimensions S x S defining interspecific
-#'   competition coefficients between all pairs of species. If \code{NULL} (default), no interspecific competition is applied.
+#' @param lottery A single logical value. If \code{TRUE}, triggers the demographic turnover
+#'   iterative lottery phase after initial community assembly.
+#' @param nIterations A single numeric integer specifying the total timeline steps/iterations to
+#'   run inside the lottery loop.
 #' @param verbose A single logical value. If \code{TRUE} (default), outputs live processing
 #'   milestones and loop updates to the console.
 #'
@@ -56,23 +56,11 @@
 #'
 #' @importFrom stats rmultinom
 #'
-masterEqMetacomm <- function(Meta.pool,
-                             d.spp,
-                             FF = NULL,
-                             m.pool,
-                             Js,
-                             M.migra,
-                             id.fixed = NULL,
-                             comm.fixed = NULL,
-                             init.comm = NULL,
-                             lottery = TRUE,
-                             it = 100,
-                             prop.dead.by.it = 0.05,
-                             Ea = 1e-5,
-                             Ts = 293.15,
-                             m.temp = 0,
-                             Alfa = NULL,
-                             verbose = TRUE) {
+masterEqMetacomm <- function(Meta.pool, Js, M.migra, m.pool, d.spp = NULL,
+                             FF = NULL, alpha = NULL, init.comm = NULL,
+                             id.fixed = NULL, comm.fixed = NULL,
+                             prop.dead.by.it = 0.05, Ea = 1e-5, Ts = 293.15, m.temp = 0,
+                             lottery = TRUE, nIterations = 100, verbose = TRUE) {
 
 
   #### 1. VALIDATE INPUTS ####
@@ -87,12 +75,12 @@ masterEqMetacomm <- function(Meta.pool,
                      comm.fixed = comm.fixed,
                      init.comm = init.comm,
                      lottery = lottery,
-                     it = it,
+                     nIterations = nIterations,
                      prop.dead.by.it = prop.dead.by.it,
                      Ea = Ea,
                      Ts = Ts,
                      m.temp = m.temp,
-                     Alfa = Alfa
+                     alpha = alpha
   )
 
   #### 2. INITIALIZATION AND DATA NORMALIZATION ####
@@ -100,6 +88,11 @@ masterEqMetacomm <- function(Meta.pool,
   # Structural Dimension References
   S <- length(Meta.pool)
   C <- length(Js)
+
+  # Handle d.spp default value
+  if (is.null(d.spp)) {
+    d.spp <- rep(1, S)
+  }
 
   # Normalize vectors to represent relative probabilities summing to 1
   d.spp      <- d.spp / sum(d.spp)
@@ -198,9 +191,9 @@ masterEqMetacomm <- function(Meta.pool,
     # Calculate potential recruits based on local abundance and spatial migration
     Pool.neighbor <- (Meta %*% M.migra) * d.spp * FF
 
-    # Calculate interspecific competition overlap (this is skipped if Alfa is NULL)
-    if (!is.null(Alfa)) {
-      overlap <- Alfa %*% Meta
+    # Calculate interspecific competition overlap (this is skipped if alpha is NULL)
+    if (!is.null(alpha)) {
+      overlap <- alpha %*% Meta
       col_sums_overlap <- colSums(overlap)
       col_sums_overlap[col_sums_overlap == 0] <- 1
       overlap <- sweep(overlap, 2, col_sums_overlap, FUN = "/")
@@ -243,10 +236,10 @@ masterEqMetacomm <- function(Meta.pool,
     }
 
     # Generate timeline checkpoints
-    generations <- seq(1, it, 1 / prop.dead.by.it)
+    generations <- seq(1, nIterations, 1 / prop.dead.by.it)
 
     # Loop over iterations of the lottery dynamic
-    for (iteration in 1:it) {
+    for (iteration in 1:nIterations) {
 
       # Update community memory cache if at checkpoint
       if (iteration %in% generations) { Meta.lag <- Meta }
@@ -274,9 +267,9 @@ masterEqMetacomm <- function(Meta.pool,
       # Factor in community memory matrix element-wise
       Pool.neighbor <- Pool.neighbor * (1 - m.temp) + Meta.lag * (m.temp)
 
-      # Re-calculate interspecific competition overlap (this is skipped if Alfa is NULL)
-      if (!is.null(Alfa)) {
-        overlap <- Alfa %*% Meta
+      # Re-calculate interspecific competition overlap (this is skipped if alpha is NULL)
+      if (!is.null(alpha)) {
+        overlap <- alpha %*% Meta
         col_sums_overlap <- colSums(overlap)
         col_sums_overlap[col_sums_overlap == 0] <- 1
         overlap <- sweep(overlap, 2, col_sums_overlap, FUN = "/")
@@ -295,7 +288,7 @@ masterEqMetacomm <- function(Meta.pool,
         Meta[, i] <- Meta[, i] + stats::rmultinom(1, size = dead.by.it[i], prob = Prob.mat[, i])
       }
 
-      if(verbose){ cat("lottery iteration", iteration, "of", it, "\n")}
+      if(verbose){ cat("lottery iteration", iteration, "of", nIterations, "\n")}
     }
   }
 

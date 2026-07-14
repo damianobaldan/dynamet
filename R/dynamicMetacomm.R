@@ -22,8 +22,12 @@ dynamicMetacomm <- function(nEpochs, ..., init.comm = NULL, updater = NULL) {
   # Remove init.comm from dots if user accidentally put it there
   args_list$init.comm <- NULL
 
-  # Validate
-  validateDynamicInputs(args_list, nEpochs, init.comm)
+  # Validate inputs
+  validateDynamicInputs(
+    args_list = args_list,
+    nEpochs = nEpochs,
+    init.comm = init.comm,
+    updater = updater)
 
   # Initialize output list
   trajectory <- vector("list", nEpochs)
@@ -93,7 +97,7 @@ dynamicMetacomm <- function(nEpochs, ..., init.comm = NULL, updater = NULL) {
 #' @param nEpochs The intended number of simulation epochs.
 #'
 #' @keywords internal
-validateDynamicInputs <- function(args_list, nEpochs, init.comm) {
+validateDynamicInputs <- function(args_list, nEpochs, init.comm, updater) {
 
   # Iterate trough the input arguments
   for (arg_name in names(args_list)) {
@@ -137,6 +141,5 @@ validateDynamicInputs <- function(args_list, nEpochs, init.comm) {
       ))
     }
   }
-
 
 }

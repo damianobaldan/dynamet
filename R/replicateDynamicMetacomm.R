@@ -17,7 +17,7 @@
 #' @importFrom parallel detectCores
 #'
 #' @export
-replicateDynamicMetacomm <- function(nReplicates, nEpochs, ..., init.comm = NULL, n_cores = parallel::detectCores() - 1) {
+replicateDynamicMetacomm <- function(nReplicates, nEpochs, ..., init.comm = NULL, updater = NULL, n_cores = parallel::detectCores() - 1) {
 
   # 1. Setup parallel backend
   future::plan(future::multisession, workers = n_cores)

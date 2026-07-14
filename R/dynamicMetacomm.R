@@ -4,11 +4,17 @@
 #' @param ... All arguments passed to masterEqMetacomm. If an argument is a list,
 #'            it must have length 1 (constant) or length nEpochs (dynamic).
 #' @param init.comm Initial community state (optional).
+#' @param updater A function that takes (current_comm, current_args) and
+#'                returns an updated list of args for the next epoch.
 #'
 #' @returns A list of length nEpochs containing the resulting community matrix for each epoch.
 #'
+#' @importFrom utils modifyList
+#'
 #' @export
-dynamicMetacomm <- function(nEpochs, ..., init.comm = NULL) {
+dynamicMetacomm <- function(nEpochs, ..., init.comm = NULL, updater = NULL) {
+
+  #----------- 1. Input Validation ----------
 
   # Capture all arguments passed to the function
   args_list <- list(...)
@@ -25,6 +31,8 @@ dynamicMetacomm <- function(nEpochs, ..., init.comm = NULL) {
   # Initialize current community state
   current_comm <- init.comm
 
+  #----------- 2. Iterate trough epochs ----------
+
   # Iterate trough epochs
   for (i in 1:nEpochs) {
 
@@ -33,7 +41,8 @@ dynamicMetacomm <- function(nEpochs, ..., init.comm = NULL) {
       message(sprintf("Running Epoch %d of %d...", i, nEpochs))
     }
 
-    # Construct arguments for this specific epoch:
+    #----------- 2.1 Construct arguments for this specific epoch ----------
+
     # apply function that checks if the argument is a list and
     # selects the appropriate index, otherwise returns the constant value.
     epoch_args <- lapply(
@@ -45,10 +54,11 @@ dynamicMetacomm <- function(nEpochs, ..., init.comm = NULL) {
           return(arg[[index]])
         # Otherwise simply return the argument
         } else {
-          # Treat non-list as constant
           return(arg)
         }
       })
+
+    #----------- 2.2 Update init.comm and run the simulation ----------
 
     # Pass the current state
     epoch_args$init.comm <- current_comm
@@ -58,6 +68,18 @@ dynamicMetacomm <- function(nEpochs, ..., init.comm = NULL) {
 
     # Save the result
     trajectory[[i]] <- current_comm
+
+    #----------- 2.3 update parameters for the next simulation ----------
+
+    # Update parameters if an updater function is provided
+    if (!is.null(updater)) {
+
+      # Calculate the new parameters based on the current community state and the current argument
+      updated_params <- updater(current_comm, args_list)
+
+      # Update the master list
+      args_list <- utils::modifyList(args_list, updated_params)
+    }
   }
 
   return(trajectory)
@@ -94,6 +116,26 @@ validateDynamicInputs <- function(args_list, nEpochs, init.comm) {
   # Strictly validate init.comm
   if (!is.null(init.comm) && !is.matrix(init.comm)) {
     stop("'init.comm' must be NULL or a matrix representing the initial community state.")
+  }
+
+  # Validate updater function
+  if (!is.null(updater)) {
+
+    # Check if it is a function
+    if (!is.function(updater)) {
+      stop("'updater' must be a function.")
+    }
+
+    # Check the number of arguments
+    # formals() returns a pairlist of the function's arguments
+    updater_args <- names(formals(updater))
+
+    if (length(updater_args) != 2) {
+      stop(sprintf(
+        "Invalid 'updater' function: It must accept exactly 2 arguments (current_comm, current_args), but it has %d.",
+        length(updater_args)
+      ))
+    }
   }
 
 

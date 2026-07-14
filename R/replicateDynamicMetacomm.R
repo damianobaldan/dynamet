@@ -20,14 +20,12 @@
 replicateDynamicMetacomm <- function(nReplicates, nEpochs, ..., init.comm = NULL, n_cores = parallel::detectCores() - 1) {
 
   # 1. Setup parallel backend
-  # We use the explicitly namespaced calls here
   future::plan(future::multisession, workers = n_cores)
 
-  # 2. Capture all ... arguments to pass them through
+  # 2. Get ... arguments into a list for passing to dynamicMetacomm
   sim_args <- list(...)
 
-  # 3. Execute replicates
-  # future_lapply is imported from future.apply
+  # 3. Run replicates
   results <- future.apply::future_lapply(seq_len(nReplicates), function(i) {
 
     # We call dynamicMetacomm with the captured parameters

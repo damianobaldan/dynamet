@@ -4,7 +4,7 @@
 \alias{dynamicMetacomm}
 \title{Simulate Metacommunity Dynamics Over Multiple Epochs}
 \usage{
-dynamicMetacomm(nEpochs, ..., init.comm = NULL)
+dynamicMetacomm(nEpochs, ..., init.comm = NULL, updater = NULL)
 }
 \arguments{
 \item{nEpochs}{The number of iterations/epochs to run.}
@@ -13,6 +13,9 @@ dynamicMetacomm(nEpochs, ..., init.comm = NULL)
 it must have length 1 (constant) or length nEpochs (dynamic).}
 
 \item{init.comm}{Initial community state (optional).}
+
+\item{updater}{A function that takes (current_comm, current_args) and
+returns an updated list of args for the next epoch.}
 }
 \value{
 A list of length nEpochs containing the resulting community matrix for each epoch.

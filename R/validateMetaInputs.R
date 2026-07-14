@@ -81,7 +81,6 @@ validateMetaInputs <- function(
 
   # Community-dimension alignments (Columns)
   if (!is.null(FF) && ncol(FF) != C) stop(sprintf("Dimension mismatch: Environmental filter matrix 'FF' must have %d columns (Communities).", C))
-  if (length(Ts) != C) stop(sprintf("Dimension mismatch: Temperature vector 'Ts' length (%d) must match 'Js' (%d).", length(Ts), C))
 
   if (!is.null(M.migra)) {
     if (nrow(M.migra) != C || ncol(M.migra) != C) stop(sprintf("Dimension mismatch: Migration matrix 'M.migra' must be a square matrix of %d x %d.", C, C))

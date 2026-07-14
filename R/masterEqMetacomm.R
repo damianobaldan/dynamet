@@ -63,7 +63,7 @@ masterEqMetacomm <- function(Meta.pool, Js, M.migra, m.pool, d.spp = NULL,
                              lottery = TRUE, nIterations = 100, verbose = TRUE) {
 
 
-  #### 1. VALIDATE INPUTS ####
+  #----------- 1. VALIDATE INPUTS -----------
   validateMetaInputs(
     Meta.pool       = Meta.pool,
     Js              = Js,
@@ -83,7 +83,7 @@ masterEqMetacomm <- function(Meta.pool, Js, M.migra, m.pool, d.spp = NULL,
     nIterations     = nIterations
   )
 
-  #### 2. INITIALIZATION AND DATA NORMALIZATION ####
+  #----------- 2. INITIALIZATION AND DATA NORMALIZATION -----------
 
   # Structural Dimension References
   S <- length(Meta.pool)
@@ -126,7 +126,7 @@ masterEqMetacomm <- function(Meta.pool, Js, M.migra, m.pool, d.spp = NULL,
   }
 
 
-  #### 3. THERMAL DEPENDENCE CALCULATIONS ####
+  #----------- 3. THERMAL DEPENDENCE CALCULATIONS -----------
 
   # Estimate standard constant based on the minimum temperature patch to anchor baseline mortality
   min.dead.Tmin <- prop.dead.by.it / exp(-Ea / (min(Ts) * 8.62e-5))
@@ -150,7 +150,7 @@ masterEqMetacomm <- function(Meta.pool, Js, M.migra, m.pool, d.spp = NULL,
   max.dead.by.it <- max(dead.by.it)
 
 
-  #### 4. COALESCENT ASSEMBLY PHASE ####
+  #----------- 4. COALESCENT ASSEMBLY PHASE -----------
 
   # If no initial community is provided, seed each community with exactly 1 individual based on regional pool and filters
   if (is.null(init.comm)) {
@@ -220,7 +220,7 @@ masterEqMetacomm <- function(Meta.pool, Js, M.migra, m.pool, d.spp = NULL,
     if(verbose){ cat("coalescent construction in J:", ii, "of", max(Js), "\n") }
   }
 
-  #### 5. LOTTERY DYNAMICS ####
+  #----------- 5. LOTTERY DYNAMICS -----------
   if (lottery) {
 
     # Mirror state for community memory tracking

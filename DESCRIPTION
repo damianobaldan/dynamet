@@ -1,6 +1,6 @@
 Package: dynamet
 Title: Lottery model for metacommunity dynamics
-Version: 0.0.0.9000
+Version: 0.1.1
 Authors@R: c(
     person("Damiano", "Baldan", email = "damiano.baldan91(at)gmail.com", role = c("aut", "cre"),
          comment = c(ORCID = "0000-0001-9237-4883")),
@@ -15,3 +15,10 @@ RoxygenNote: 7.3.3
 Imports: 
     future,
     future.apply
+Suggests: 
+    knitr,
+    rmarkdown,
+    terra,
+    dplyr,
+    ggplot2
+VignetteBuilder: knitr

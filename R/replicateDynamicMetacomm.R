@@ -7,6 +7,8 @@
 #' @param nEpochs Integer. Passed to dynamicMetacomm.
 #' @param ... Arguments passed to masterEqMetacomm (via dynamicMetacomm).
 #' @param init.comm Matrix or NULL. Passed to dynamicMetacomm.
+#' @param updater A function that takes (current_comm, current_args) and
+#'                returns an updated list of args for the next epoch.
 #' @param n_cores Integer. Number of CPU cores to use. Defaults to available cores - 1.
 #'
 #' @returns A list of length nReplicates, where each element is the resulting
@@ -23,7 +25,8 @@ replicateDynamicMetacomm <- function(nReplicates, nEpochs, ..., init.comm = NULL
   future::plan(future::multisession, workers = n_cores)
 
   # 2. Get ... arguments into a list for passing to dynamicMetacomm
-  sim_args <- list(...)
+  defaults <- getSimulationDefaults()
+  sim_args <- modifyList(defaults, list(...))
 
   # 3. Run replicates
   results <- future.apply::future_lapply(seq_len(nReplicates), function(i) {

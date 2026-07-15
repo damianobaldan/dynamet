@@ -16,8 +16,11 @@ dynamicMetacomm <- function(nEpochs, ..., init.comm = NULL, updater = NULL) {
 
   #----------- 1. Input Validation ----------
 
-  # Capture all arguments passed to the function
-  args_list <- list(...)
+  # Get default settings for the simulation
+  defaults <- getSimulationDefaults()
+
+  # Update with function input if something different from defaults was set
+  args_list <- modifyList(defaults, list(...))
 
   # Remove init.comm from dots if user accidentally put it there
   args_list$init.comm <- NULL
@@ -98,6 +101,14 @@ dynamicMetacomm <- function(nEpochs, ..., init.comm = NULL, updater = NULL) {
 #'
 #' @keywords internal
 validateDynamicInputs <- function(args_list, nEpochs, init.comm, updater) {
+
+  # Check if arguments that do not have a default are missing
+  required <- c("Meta.pool", "Js", "M.migra", "m.pool")
+  for (req in required) {
+    if (is.null(args_list[[req]])) {
+      stop(sprintf("Missing required argument: %s", req))
+    }
+  }
 
   # Iterate trough the input arguments
   for (arg_name in names(args_list)) {

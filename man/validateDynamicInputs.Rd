@@ -4,7 +4,7 @@
 \alias{validateDynamicInputs}
 \title{Validate inputs for dynamicMetacomm}
 \usage{
-validateDynamicInputs(args_list, nEpochs, init.comm)
+validateDynamicInputs(args_list, nEpochs, init.comm, updater)
 }
 \arguments{
 \item{args_list}{A list of all arguments passed to dynamicMetacomm.}

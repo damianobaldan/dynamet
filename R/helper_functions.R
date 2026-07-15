@@ -24,6 +24,8 @@ born <- function(n, dead.by.it, M.pool, m.pool) {
   stats::rmultinom(1, dead.by.it, (1 - m.pool) * (n / sum(n)) + m.pool * M.pool)
 }
 
+
+
 #' Handle Abundance Reductions During Mortality Sub-Phases
 #'
 #' @description
@@ -46,6 +48,7 @@ change <- function(n, change) {
   stats::rmultinom(1, change, n)
 }
 
+
 #' Standardize Local Abundance Proportions Relative to Global Pool
 #'
 #' @description
@@ -66,3 +69,29 @@ change <- function(n, change) {
 m_to_1 <- function(m, m.pool) {
   (1 - m.pool) * m / sum(m)
 }
+
+
+
+#' Get default parameters for metacommunity simulations
+#'
+#' @returns A named list of default simulation parameters.
+#' @keywords internal
+#'
+getSimulationDefaults <- function() {
+  list(
+    d.spp = NULL,
+    FF = NULL,
+    alpha = NULL,
+    init.comm = NULL,
+    id.fixed = NULL,
+    comm.fixed = NULL,
+    prop.dead.by.it = 0.05,
+    Ea = 1e-5,
+    Ts = 293.15,
+    m.temp = 0,
+    lottery = TRUE,
+    nIterations = 100,
+    verbose = TRUE
+  )
+}
+

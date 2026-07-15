@@ -1,0 +1,200 @@
+---
+title: "examples"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{examples}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+# Examples of dynamet application
+
+```{r options, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+
+```{r packages, include = FALSE}
+library(terra)
+library(dynamet)
+library(dplyr)
+library(ggplot2)
+```
+
+
+## 1. Minimal Example: Single Community Assembly
+
+To understand the core lottery dynamics, we start with a single local community ($C=1$)
+receiving individuals from a regional pool of 5 species.
+
+```{r single-community}
+# 1. Setup: 10 species in the regional pool
+S <- 5
+Meta.pool <- c(0.1, 0.2, 0.3, 0.3, 0.1) # Relative abundances
+
+# 2. Parameters for a single community
+# Js: Carrying capacity of 500 individuals
+# M.migra: 1x1 matrix (closed system relative to other communities)
+Js <- 500
+M.migra <- matrix(1, nrow = 1, ncol = 1)
+m.pool <- 0.05  # 5% immigration rate from the meta-pool
+d.spp <- rep(1, S) # Uniform dispersal ability across species
+nEpochs = 10 # Set the number of epochs
+
+# 3. Initialize community with zero individuals
+init_comm <- matrix(0, nrow = S, ncol = 1)
+
+# 4. Run for 10 epochs
+results <- dynamicMetacomm(
+  nEpochs = nEpochs,
+  Meta.pool = Meta.pool,
+  Js = Js,
+  M.migra = M.migra,
+  m.pool = m.pool,
+  d.spp = d.spp,
+  lottery = TRUE,
+  nIterations = 200,
+  prop.dead.by.it = 0.1,
+  Ea = 0.5,
+  init.comm = init_comm,
+  verbose = FALSE
+)
+
+# 5. Visualize the transition from zero to steady-state
+sad_data <- do.call(rbind, lapply(1:nEpochs, function(i) {
+  data.frame(
+    Epoch = i,
+    Species = factor(1:S),
+    Abundance = as.vector(results[[i]])
+  )
+}))
+
+# Plot: Stacked bar chart showing relative composition over time
+ggplot(sad_data, aes(x = factor(Epoch), y = Abundance, fill = Species)) +
+  geom_bar(stat = "identity", position = "fill") + # "fill" shows relative proportion
+  labs(
+    title = "Species Abundance Distribution (SAD) Over Time",
+    x = "Epoch",
+    y = "Relative Abundance"
+  ) +
+  theme_minimal()
+```
+
+## 2. Spatial Metacommunity Simulation
+
+In this example, we model 100 communities arranged on a 10x10 grid, where carrying 
+capacity (`Js`) varies spatially and migration is constrained by distance.
+
+```{r spatial-sim, fig.width=8, fig.height=4}
+
+# 1. Define the 10x10 Landscape
+r <- rast(ncol=10, nrow=10, xmin=0, xmax=10, ymin=0, ymax=10)
+
+# 2. Create spatially structured Carrying Capacity (Js)
+values(r) <- 50 + 50 * sin(seq(0, pi, length.out=100))
+Js <- as.vector(values(r))
+
+# 3. Create Migration Matrix (M.migra)
+coords <- crds(r)
+dists <- as.matrix(dist(coords))
+M.migra <- exp(-0.7 * dists)
+M.migra <- M.migra / rowSums(M.migra)
+diag(M.migra) <- 0 
+
+# 4. Parameters
+S <- 50
+Meta.pool <- runif(S)
+d.spp <- runif(S)
+
+# 5. Run the Simulation
+# Using masterEqMetacomm for a single epoch/iteration
+community_abundance <- masterEqMetacomm(
+  Meta.pool = Meta.pool,
+  Js = Js,
+  M.migra = M.migra,
+  m.pool = 0.05,
+  d.spp = d.spp,
+  nIterations = 100,
+  verbose = FALSE
+)
+
+# 6. Map results back to raster for visualization
+alpha_div <- colSums(community_abundance > 0)
+r_out <- r
+values(r_out) <- alpha_div
+
+# Visualize
+par(mfrow=c(1,2))
+plot(r, main = "Carrying Capacity (Js)", col = terrain.colors(10))
+plot(r_out, main = "Alpha Diversity", col = cm.colors(10))
+```
+
+## 2. Spatial Metacommunity Simulation with a spatial filter
+
+In this example, we model 100 communitieswith 20 species arranged on a 10x10 grid, where carrying 
+capacity (`Js`) varies spatially and migration is constrained by distance.
+
+```{r spatial-sim-filter, fig.width=8, fig.height=4}
+
+# 1. Define the 10x10 Landscape Environment (e.g., elevation or pH)
+env_r <- r <- rast(ncol=10, nrow=10, xmin=0, xmax=10, ymin=0, ymax=10)
+values(env_r) <- seq(0, 1, length.out=100) # Simple gradient across the landscape
+values(r) <- 50 + 50 * sin(seq(0, pi, length.out=100))
+Js <- as.vector(values(r))
+
+# 2. Define Species Niche Optima (S = 5)
+S <- 20
+niche_optima <- seq(0.5, 1, length.out = S)
+
+# 3. Create the Environmental Filtering Matrix (FF)
+# FF must be S x C (5 rows x 100 columns)
+# We calculate a Gaussian penalty for each species in each cell
+FF <- matrix(NA, nrow = S, ncol = 100)
+env_vals <- values(env_r)
+
+for(i in 1:S) {
+  # Gaussian filter: 1 = perfect match, approaching 0 = high penalty
+  FF[i, ] <- exp(-((env_vals - niche_optima[i])^2) / (2 * 0.2^2))
+}
+
+# 4. Run the simulation with Filtering
+# Note: FF is now passed as a matrix of dimensions S x C
+results <- masterEqMetacomm(
+  Meta.pool = rep(1/S, S),
+  Js = Js,
+  M.migra = M.migra, # Assuming M.migra is defined as in the previous step
+  m.pool = 0.05,
+  d.spp = rep(1, S),
+  FF = FF,           # Spatial Filter Applied
+  nIterations = 500,
+  verbose = FALSE
+)
+
+# 5. Visualize a species' distribution filtered by the environment
+alpha_div <- colSums(ifelse(results > 0, 1, 0))
+r_out <- r
+values(r_out) <- alpha_div
+
+# Visualize
+par(mfrow=c(1,2))
+plot(env_r, main = "Environment", col = terrain.colors(10))
+plot(r_out, main = "Alpha Diversity", col = cm.colors(10))
+```
+
+## MISSING: example on how to include a custom updater function to dynamically change parameters across epochs
+
+
+
+
+
+
+
+
+
+
+
+
+
+

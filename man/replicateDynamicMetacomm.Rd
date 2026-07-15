@@ -9,6 +9,7 @@ replicateDynamicMetacomm(
   nEpochs,
   ...,
   init.comm = NULL,
+  updater = NULL,
   n_cores = parallel::detectCores() - 1
 )
 }
@@ -20,6 +21,9 @@ replicateDynamicMetacomm(
 \item{...}{Arguments passed to masterEqMetacomm (via dynamicMetacomm).}
 
 \item{init.comm}{Matrix or NULL. Passed to dynamicMetacomm.}
+
+\item{updater}{A function that takes (current_comm, current_args) and
+returns an updated list of args for the next epoch.}
 
 \item{n_cores}{Integer. Number of CPU cores to use. Defaults to available cores - 1.}
 }

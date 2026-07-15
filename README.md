@@ -7,5 +7,8 @@ devtools::install_github("damianobaldan/dynamet", build_vignettes = TRUE)
 
 # Changelog
 
+0.1.1
+* Added vignette
+
 0.0.0.9000
 * First commit on github

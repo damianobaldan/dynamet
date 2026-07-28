@@ -16,7 +16,7 @@ knitr::opts_chunk$set(
 ```
 
 
-```{r packages, include = FALSE}
+```{r packages }
 library(terra)
 library(dynamet)
 library(dplyr)
@@ -24,7 +24,7 @@ library(ggplot2)
 ```
 
 
-## 1. Minimal Example: Single Community Assembly
+## 1. Single Community Assembly
 
 To understand the core lottery dynamics, we start with a single local community ($C=1$)
 receiving individuals from a regional pool of 5 species.
@@ -41,7 +41,7 @@ Js <- 500
 M.migra <- matrix(1, nrow = 1, ncol = 1)
 m.pool <- 0.05  # 5% immigration rate from the meta-pool
 d.spp <- rep(1, S) # Uniform dispersal ability across species
-nEpochs = 10 # Set the number of epochs
+nEpochs = 20 # Set the number of epochs
 
 # 3. Initialize community with zero individuals
 init_comm <- matrix(0, nrow = S, ncol = 1)
@@ -131,7 +131,7 @@ plot(r, main = "Carrying Capacity (Js)", col = terrain.colors(10))
 plot(r_out, main = "Alpha Diversity", col = cm.colors(10))
 ```
 
-## 2. Spatial Metacommunity Simulation with a spatial filter
+## 3. Spatial Metacommunity Simulation with a spatial filter
 
 In this example, we model 100 communitieswith 20 species arranged on a 10x10 grid, where carrying 
 capacity (`Js`) varies spatially and migration is constrained by distance.
@@ -183,9 +183,133 @@ plot(env_r, main = "Environment", col = terrain.colors(10))
 plot(r_out, main = "Alpha Diversity", col = cm.colors(10))
 ```
 
-## MISSING: example on how to include a custom updater function to dynamically change parameters across epochs
+## 4. Advanced: Spatial Eco-Evolutionary Feedbacks via Updater
+
+In this example, we scale up to a spatial metacommunity (10x10 grid). We use the 
+`updater` function to dynamically modify the environmental/spatial filter each epoch 
+based on the spatial distribution of species abundances from the previous epoch. 
+
+Specifically, cells where a species is highly abundant experience a locally lowered 
+filter penalty (simulating habitat modification or niche construction).
+
+```{r spatial-feedback, fig.width=8, fig.height=5}
+
+# 1. Setup Spatial Landscape (10x10)
+r <- rast(ncol=10, nrow=10, xmin=0, xmax=10, ymin=0, ymax=10)
+C <- ncell(r)
+S <- 10
+
+# 2. Migration and Parameters
+coords <- crds(r)
+dists <- as.matrix(dist(coords))
+M.migra <- exp(-0.5 * dists)
+M.migra <- M.migra / rowSums(M.migra)
+diag(M.migra) <- 0
+
+Js <- rep(200, C)
+Meta.pool <- runif(S)
+Meta.pool <- Meta.pool / sum(Meta.pool)
+d.spp <- rep(1, S)
+
+# Initial uniform environmental filter (S x C matrix)
+FF_init <- matrix(0.5, nrow = S, ncol = C)
+
+# 3. Define the Spatial Updater Function
+filter_updater <- function(current_comm, current_args) {
+  
+  # Ensure inputs are strictly matrices with preserved dimensions
+  current_comm <- as.matrix(current_comm)
+  current_FF <- as.matrix(current_args$FF)
+  
+  # Scale abundance safely as a matrix operation
+  max_abund <- max(current_comm)
+  if (max_abund > 0) {
+    abund_scaled <- current_comm / max_abund
+  } else {
+    abund_scaled <- current_comm
+  }
+  # Ensure abund_scaled didn't lose its matrix status
+  dim(abund_scaled) <- dim(current_comm)
+  
+  # Calculate filter
+  new_FF <- current_FF - (0.5 * abund_scaled)
+  
+  # Clamp values using matrix-safe indexing
+  new_FF[new_FF < 0.1] <- 0.1
+  new_FF[new_FF > 1.0] <- 1.0
+  
+  # Final safety check on dimensions
+  dim(new_FF) <- dim(current_FF)
+  
+  return(list(FF = new_FF))
+}
+
+# 4. Run for exactly 1 Epoch
+results_one_epoch <- dynamicMetacomm(
+  nEpochs = 1,
+  Meta.pool = Meta.pool,
+  Js = Js,
+  M.migra = M.migra,
+  m.pool = 0.01,
+  d.spp = d.spp,
+  FF = FF_init,
+  updater = filter_updater,
+  nIterations = 100,
+  verbose = FALSE
+)
+
+# 5. Use spatial_updater() to calculate the new filter state
+updated_args <- filter_updater(current_comm = results_one_epoch[[1]], current_args = list(FF = FF_init))
+
+# 5. Plot Filter for two species
+par(mfrow = c(1, 2))
+
+r_updated_filter <- r
+values(r_updated_filter) <- updated_args$FF[1, ]
+plot(r_updated_filter, main = "Filter (Epoch 1) for species 1", 
+     col = hcl.colors(10, "Reds", rev = TRUE), zlim = c(0.1, 1.0))
+
+r_updated_filter <- r
+values(r_updated_filter) <- updated_args$FF[5, ]
+plot(r_updated_filter, main = "Filter (Epoch 1) for species 5", 
+     col = hcl.colors(10, "Reds", rev = TRUE), zlim = c(0.1, 1.0))
 
 
+# 7. Run the Dynamic Spatial Simulation across 5 Epochs
+results_spatial <- dynamicMetacomm(
+  nEpochs = 10,
+  Meta.pool = Meta.pool,
+  Js = Js,
+  M.migra = M.migra,
+  m.pool = 0.01,
+  d.spp = d.spp,
+  FF = FF_init,          # Pass initial filter
+  updater = filter_updater,
+  nIterations = 100,
+  verbose = FALSE
+)
+
+# 8. Compare Filter and Alpha Diversity at the Final Epoch
+final_comm <- results_spatial[[length(results_spatial)]]
+final_alpha <- colSums(ifelse(final_comm > 0, 1, 0))
+
+r_div <- r
+values(r_div) <- final_alpha
+
+plot(r_div, main = "Alpha Diversity after Feedback Epochs", col = hcl.colors(10, "YlGnBu"))
+
+# Plot dominant species across the landscape
+r_dom <- list()
+for(iii in 1:length(results_spatial)) {
+  r_div <- r
+  values(r_div) <- apply(results_spatial[[iii]], 2, which.max)
+  r_dom[[iii]] <- r_div
+}
+r_dom <- rast(r_dom)
+names(r_dom) <- paste0("Epoch_", 1:length(results_spatial))
+plot(r_dom)
+
+```
 
 
 

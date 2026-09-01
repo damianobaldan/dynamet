@@ -2,7 +2,7 @@
 % Please edit documentation in R/replicateDynamicMetacomm.R
 \name{replicateDynamicMetacomm}
 \alias{replicateDynamicMetacomm}
-\title{Run Parallel Stochastic Replicates of dynamicMetacomm}
+\title{Run Stochastic Replicates of dynamicMetacomm (Sequential or Parallel)}
 \usage{
 replicateDynamicMetacomm(
   nReplicates,
@@ -10,28 +10,25 @@ replicateDynamicMetacomm(
   ...,
   init.comm = NULL,
   updater = NULL,
-  n_cores = parallel::detectCores() - 1
+  n_cores = max(1, parallel::detectCores() - 1)
 )
 }
 \arguments{
-\item{nReplicates}{Integer. The number of independent simulation runs to perform.}
+\item{nReplicates}{Integer. The number of independent simulation runs.}
 
 \item{nEpochs}{Integer. Passed to dynamicMetacomm.}
 
-\item{...}{Arguments passed to masterEqMetacomm (via dynamicMetacomm).}
+\item{...}{Arguments passed to dynamicMetacomm / masterEqMetacomm.}
 
 \item{init.comm}{Matrix or NULL. Passed to dynamicMetacomm.}
 
-\item{updater}{A function that takes (current_comm, current_args) and
-returns an updated list of args for the next epoch.}
+\item{updater}{Function. Passed to dynamicMetacomm.}
 
-\item{n_cores}{Integer. Number of CPU cores to use. Defaults to available cores - 1.}
+\item{n_cores}{Integer. Number of CPU cores to use. If 1, runs sequentially without setting up a parallel backend.}
 }
 \value{
-A list of length nReplicates, where each element is the resulting
-trajectory list from one simulation run.
+A list of length nReplicates containing simulation trajectories.
 }
 \description{
-This function executes multiple independent simulations of
-\code{dynamicMetacomm} in parallel using the future framework.
+Run Stochastic Replicates of dynamicMetacomm (Sequential or Parallel)
 }

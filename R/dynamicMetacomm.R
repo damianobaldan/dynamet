@@ -55,9 +55,9 @@ dynamicMetacomm <- function(nEpochs, ..., init.comm = NULL, updater = NULL) {
     epoch_args <- lapply(
       args_list,
       function(arg) {
-        # if argument is a list of length nEpochs take the i-th element, otherwise take the first element
+        # if argument is a list of length nEpochs take the i-th element
         if (is.list(arg)) {
-          index <- ifelse( length(arg) == nEpochs, i, 1)
+          index <- if (length(arg) == nEpochs) {i} else {1}
           return(arg[[index]])
         # Otherwise simply return the argument
         } else {
@@ -82,7 +82,7 @@ dynamicMetacomm <- function(nEpochs, ..., init.comm = NULL, updater = NULL) {
     if (!is.null(updater)) {
 
       # Calculate the new parameters based on the current community state and the current argument
-      updated_params <- updater(current_comm, args_list)
+      updated_params <- updater(current_comm, epoch_args)
 
       # Update the master list
       args_list <- utils::modifyList(args_list, updated_params)

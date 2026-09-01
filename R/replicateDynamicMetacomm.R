@@ -1,46 +1,54 @@
-#' Run Parallel Stochastic Replicates of dynamicMetacomm
+#' Run Stochastic Replicates of dynamicMetacomm (Sequential or Parallel)
 #'
-#' @description This function executes multiple independent simulations of
-#' \code{dynamicMetacomm} in parallel using the future framework.
-#'
-#' @param nReplicates Integer. The number of independent simulation runs to perform.
+#' @param nReplicates Integer. The number of independent simulation runs.
 #' @param nEpochs Integer. Passed to dynamicMetacomm.
-#' @param ... Arguments passed to masterEqMetacomm (via dynamicMetacomm).
+#' @param ... Arguments passed to dynamicMetacomm / masterEqMetacomm.
 #' @param init.comm Matrix or NULL. Passed to dynamicMetacomm.
-#' @param updater A function that takes (current_comm, current_args) and
-#'                returns an updated list of args for the next epoch.
-#' @param n_cores Integer. Number of CPU cores to use. Defaults to available cores - 1.
+#' @param updater Function. Passed to dynamicMetacomm.
+#' @param n_cores Integer. Number of CPU cores to use. If 1, runs sequentially without setting up a parallel backend.
 #'
-#' @returns A list of length nReplicates, where each element is the resulting
-#'          trajectory list from one simulation run.
-#'
+#' @returns A list of length nReplicates containing simulation trajectories.
 #' @import future
 #' @importFrom future.apply future_lapply
 #' @importFrom parallel detectCores
-#'
 #' @export
-replicateDynamicMetacomm <- function(nReplicates, nEpochs, ..., init.comm = NULL, updater = NULL, n_cores = parallel::detectCores() - 1) {
+replicateDynamicMetacomm <- function(nReplicates,
+                                     nEpochs,
+                                     ...,
+                                     init.comm = NULL,
+                                     updater = NULL,
+                                     n_cores = max(1, parallel::detectCores() - 1)) {
 
-  # 1. Setup parallel backend
-  future::plan(future::multisession, workers = n_cores)
+  # Capture user dots cleanly
+  user_dots <- list(...)
 
-  # 2. Get ... arguments into a list for passing to dynamicMetacomm
-  defaults <- getSimulationDefaults()
-  sim_args <- modifyList(defaults, list(...))
-
-  # 3. Run replicates
-  results <- future.apply::future_lapply(seq_len(nReplicates), function(i) {
-
-    # We call dynamicMetacomm with the captured parameters
+  # Helper function to execute a single replicate call
+  run_single_rep <- function(i) {
     do.call(dynamicMetacomm, c(
-      list(nEpochs = nEpochs, init.comm = init.comm),
-      sim_args
+      list(
+        nEpochs = nEpochs,
+        init.comm = init.comm,
+        updater = updater
+      ),
+      user_dots
     ))
+  }
 
-  }, future.seed = TRUE) # Ensures stochastic independence across cores
+  # Sequential execution (n_cores == 1)
+  if (n_cores == 1) {
+    results <- lapply(seq_len(nReplicates), run_single_rep)
 
-  # 4. Clean up backend to return to normal
-  future::plan(future::sequential)
+  } else {
+    # Parallel execution (n_cores > 1)
+    future::plan(future::multisession, workers = n_cores)
+    on.exit(future::plan(future::sequential), add = TRUE) # Guarantees cleanup on exit or error
+
+    results <- future.apply::future_lapply(
+      seq_len(nReplicates),
+      run_single_rep,
+      future.seed = TRUE
+    )
+  }
 
   return(results)
 }

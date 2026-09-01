@@ -7,6 +7,9 @@ devtools::install_github("damianobaldan/dynamet", build_vignettes = TRUE)
 
 # Changelog
 
+0.1.2
+* included the possibiity to switch off the parallel backend in replicateDynamicMetacomm()
+
 0.1.1
 * Added vignette
 

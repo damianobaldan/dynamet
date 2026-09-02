@@ -2,7 +2,9 @@
 
 export(dynamicMetacomm)
 export(masterEqMetacomm)
+export(masterEqMutualisticMetacomm)
 export(replicateDynamicMetacomm)
+export(validateMutualisticInputs)
 import(future)
 importFrom(future.apply,future_lapply)
 importFrom(parallel,detectCores)

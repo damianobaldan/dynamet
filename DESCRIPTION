@@ -11,7 +11,6 @@ Description: This package provides a framework for modeling metacommunity dynami
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.3
 Imports: 
     future,
     future.apply
@@ -22,3 +21,4 @@ Suggests:
     dplyr,
     ggplot2
 VignetteBuilder: knitr
+Config/roxygen2/version: 8.1.0

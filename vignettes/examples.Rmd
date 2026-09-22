@@ -100,8 +100,6 @@ Js <- as.vector(floor(values(r)))
 coords <- crds(r)
 dists <- as.matrix(dist(coords))
 M.migra <- 10^(-0.1 * dists)
-M.migra <- M.migra / rowSums(M.migra)
-diag(M.migra) <- 0 
 
 # 4. Parameters
 S <- 50
@@ -116,7 +114,7 @@ community_abundance <- masterEqMetacomm(
   M.migra = M.migra,
   m.pool = 0.05,
   d.spp = d.spp,
-  nIterations = 100,
+  nIterations = 500,
   verbose = FALSE
 )
 
@@ -145,8 +143,8 @@ values(r) <- 50 + 50 * sin(seq(0, pi, length.out=100))
 Js <- as.vector(floor(values(r)))
 
 # 2. Define Species Niche Optima (S = 5)
-S <- 20
-niche_optima <- seq(0.5, 1, length.out = S)
+S <- 50
+niche_optima <- seq(0.75, 1, length.out = S)
 
 # 3. Create the Environmental Filtering Matrix (FF)
 # FF must be S x C (5 rows x 100 columns)
@@ -197,14 +195,12 @@ filter penalty (simulating habitat modification or niche construction).
 # 1. Setup Spatial Landscape (10x10)
 r <- rast(ncol=10, nrow=10, xmin=0, xmax=10, ymin=0, ymax=10)
 C <- ncell(r)
-S <- 10
+S <- 50
 
 # 2. Migration and Parameters
 coords <- crds(r)
 dists <- as.matrix(dist(coords))
 M.migra <- 10^(-0.1 * dists)
-M.migra <- M.migra / rowSums(M.migra)
-diag(M.migra) <- 0
 
 Js <- rep(200, C)
 Meta.pool <- runif(S)
@@ -254,7 +250,7 @@ results_one_epoch <- dynamicMetacomm(
   d.spp = d.spp,
   FF = FF_init,
   updater = filter_updater,
-  nIterations = 100,
+  nIterations = 500,
   verbose = FALSE
 )
 
@@ -285,7 +281,7 @@ results_spatial <- dynamicMetacomm(
   d.spp = d.spp,
   FF = FF_init,          # Pass initial filter
   updater = filter_updater,
-  nIterations = 100,
+  nIterations = 500,
   verbose = FALSE
 )
 

@@ -94,12 +94,12 @@ r <- rast(ncol=10, nrow=10, xmin=0, xmax=10, ymin=0, ymax=10)
 
 # 2. Create spatially structured Carrying Capacity (Js)
 values(r) <- 50 + 50 * sin(seq(0, pi, length.out=100))
-Js <- as.vector(values(r))
+Js <- as.vector(floor(values(r)))
 
 # 3. Create Migration Matrix (M.migra)
 coords <- crds(r)
 dists <- as.matrix(dist(coords))
-M.migra <- exp(-0.7 * dists)
+M.migra <- 10^(-0.1 * dists)
 M.migra <- M.migra / rowSums(M.migra)
 diag(M.migra) <- 0 
 
@@ -142,7 +142,7 @@ capacity (`Js`) varies spatially and migration is constrained by distance.
 env_r <- r <- rast(ncol=10, nrow=10, xmin=0, xmax=10, ymin=0, ymax=10)
 values(env_r) <- seq(0, 1, length.out=100) # Simple gradient across the landscape
 values(r) <- 50 + 50 * sin(seq(0, pi, length.out=100))
-Js <- as.vector(values(r))
+Js <- as.vector(floor(values(r)))
 
 # 2. Define Species Niche Optima (S = 5)
 S <- 20
@@ -202,7 +202,7 @@ S <- 10
 # 2. Migration and Parameters
 coords <- crds(r)
 dists <- as.matrix(dist(coords))
-M.migra <- exp(-0.5 * dists)
+M.migra <- 10^(-0.1 * dists)
 M.migra <- M.migra / rowSums(M.migra)
 diag(M.migra) <- 0
 

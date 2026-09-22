@@ -24,6 +24,8 @@
 #'   perfect environmental match (no filtering penalty). If \code{NULL} (default), no environmental filtering is applied.
 #' @param alpha An optional square numeric matrix of dimensions S x S defining interspecific
 #'   competition coefficients between all pairs of species. If \code{NULL} (default), no interspecific competition is applied.
+#' @param Q A single numeric value (default = 1) that scales the effect of interspecific competition on recruitment probabilities.
+#'   A value of 1 indicates proportional effect, while values >1 amplify competitive exclusion.
 #' @param init.comm An optional numeric matrix of dimensions S x C representing the custom
 #'   starting abundance counts for all species across patches. Required if \code{coalescence = FALSE}.
 #' @param id.fixed An optional numeric vector containing indices of communities whose
@@ -57,7 +59,7 @@
 #' @importFrom stats rmultinom
 #'
 masterEqMetacomm <- function(Meta.pool, Js, M.migra, m.pool, d.spp = NULL,
-                             FF = NULL, alpha = NULL, init.comm = NULL,
+                             FF = NULL, alpha = NULL, Q = 1, init.comm = NULL,
                              id.fixed = NULL, comm.fixed = NULL,
                              prop.dead.by.it = 0.05, Ea = 1e-5, Ts = 293.15, m.temp = 0,
                              lottery = TRUE, nIterations = 100, verbose = TRUE) {
@@ -72,6 +74,7 @@ masterEqMetacomm <- function(Meta.pool, Js, M.migra, m.pool, d.spp = NULL,
     d.spp           = d.spp,
     FF              = FF,
     alpha           = alpha,
+    Q               = Q,
     init.comm       = init.comm,
     id.fixed        = id.fixed,
     comm.fixed      = comm.fixed,
@@ -114,7 +117,7 @@ masterEqMetacomm <- function(Meta.pool, Js, M.migra, m.pool, d.spp = NULL,
     FF <- matrix(1, nrow = S, ncol = C)
   }
 
-  # Initialize community memory tracking (m.temp) as a strict S x C matrix
+  # Initialize community memory tracking (m.temp) as a S x C matrix
   if (is.null(m.temp)) {
     m.temp <- matrix(0, nrow = S, ncol = C)
   } else if (!is.matrix(m.temp)) {
@@ -166,7 +169,7 @@ masterEqMetacomm <- function(Meta.pool, Js, M.migra, m.pool, d.spp = NULL,
   }
 
   # Loop over communities to perform the coalescent assembly
-  for (ii in 1:max(Js)) {
+  for (ii in 2:max(Js)) {
 
     # Target communities that are under capacity AND whose current individual count is below ii
     id.j <- which(colSums(Meta) < Js & colSums(Meta) < ii)
@@ -177,13 +180,13 @@ masterEqMetacomm <- function(Meta.pool, Js, M.migra, m.pool, d.spp = NULL,
     }
 
     # Check: if no communities need an individual in this step, skip to next iteration
-    if (length(id.j) == 0){next}
+    if (length(id.j) == 0){next} ## could be removed ???
 
     # Keep fixed communities scaled to current global abundance level
     if (!is.null(id.fixed)) {
       for (idx in seq_along(id.fixed)) {
         f_id <- id.fixed[idx]
-        current_profile <- if (is.matrix(comm.fixed)) comm.fixed[, idx] else comm.fixed
+        current_profile <- if (is.matrix(comm.fixed)) {comm.fixed[, idx]} else {comm.fixed}
         Meta[, f_id] <- current_profile * min(ii - 1, Js[f_id])
       }
     }
@@ -273,7 +276,7 @@ masterEqMetacomm <- function(Meta.pool, Js, M.migra, m.pool, d.spp = NULL,
         col_sums_overlap <- colSums(overlap)
         col_sums_overlap[col_sums_overlap == 0] <- 1
         overlap <- sweep(overlap, 2, col_sums_overlap, FUN = "/")
-        Pool.neighbor <- Pool.neighbor * (1 - overlap)
+        Pool.neighbor <- Pool.neighbor * (1 - overlap)^Q
       }
 
       # Normalize Pool.neighbor safely by column
@@ -296,6 +299,11 @@ masterEqMetacomm <- function(Meta.pool, Js, M.migra, m.pool, d.spp = NULL,
 }
 
 
+
+
+
+
+
 #' Validate the inputs for masterEqMetacomm
 #'
 #' @inheritParams masterEqMetacomm
@@ -307,15 +315,16 @@ validateMetaInputs <- function(
     M.migra,
     m.pool,
     d.spp,
-    FF = NULL,
-    alpha = NULL,
-    init.comm = NULL,
-    id.fixed = NULL,
-    comm.fixed = NULL,
+    FF,
+    alpha,
+    Q,
+    init.comm ,
+    id.fixed,
+    comm.fixed,
     prop.dead.by.it,
     Ea,
     Ts,
-    m.temp = NULL,
+    m.temp,
     lottery,
     nIterations) {
 
@@ -335,6 +344,7 @@ validateMetaInputs <- function(
 
   if (!is.null(FF) && (!is.matrix(FF) || !is.numeric(FF)))     stop("'FF' must be a numeric matrix.")
   if (!is.null(alpha) && (!is.matrix(alpha) || !is.numeric(alpha))) stop("'alpha' must be a numeric matrix.")
+  if (!is.null(Q) && (!is.numeric(Q) || length(Q) != 1)) stop("'Q' must be a single numeric value.")
 
   # Configuration cross-dependence safety
   if (!is.null(id.fixed) && is.null(comm.fixed)) {
@@ -449,7 +459,7 @@ validateMetaInputs <- function(
     }
   }
 
-  # Enforce Kelvin temperature protection
+  # Check that temperature Ts is in Kelvin
   if (any(Ts <= 0)) stop("Value error: Temperatures in 'Ts' must be strictly positive values expressed in Kelvin.")
 
 }

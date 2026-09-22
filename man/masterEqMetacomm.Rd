@@ -12,6 +12,7 @@ masterEqMetacomm(
   d.spp = NULL,
   FF = NULL,
   alpha = NULL,
+  Q = 1,
   init.comm = NULL,
   id.fixed = NULL,
   comm.fixed = NULL,
@@ -46,6 +47,9 @@ perfect environmental match (no filtering penalty). If \code{NULL} (default), no
 
 \item{alpha}{An optional square numeric matrix of dimensions S x S defining interspecific
 competition coefficients between all pairs of species. If \code{NULL} (default), no interspecific competition is applied.}
+
+\item{Q}{A single numeric value (default = 1) that scales the effect of interspecific competition on recruitment probabilities.
+A value of 1 indicates proportional effect, while values >1 amplify competitive exclusion.}
 
 \item{init.comm}{An optional numeric matrix of dimensions S x C representing the custom
 starting abundance counts for all species across patches. Required if \code{coalescence = FALSE}.}

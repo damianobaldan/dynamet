@@ -7,8 +7,12 @@ devtools::install_github("damianobaldan/dynamet", build_vignettes = TRUE)
 
 # Changelog
 
+0.1.3
+* Added Q argument to masterEqMetacomm()
+* updated vignette
+
 0.1.2
-* included the possibiity to switch off the parallel backend in replicateDynamicMetacomm()
+* included the possibilty to switch off the parallel backend in replicateDynamicMetacomm()
 
 0.1.1
 * Added vignette

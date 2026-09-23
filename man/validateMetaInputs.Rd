@@ -32,7 +32,8 @@ or probabilities of species within the regional species pool.}
 individual slots) for each community patch.}
 
 \item{M.migra}{A square numeric matrix of dimensions C x C establishing spatial
-migration connectivity and dispersal probabilities between patches. Cannot be NULL.}
+migration connectivity and dispersal probabilities between patches. Cannot be NULL. The diagonal term
+represents the self-recruitment (i.e. individuals sampled from the same patch).}
 
 \item{m.pool}{A single numeric value between 0 and 1 defining the probability of
 recruitment originating from the global regional pool rather than local/neighboring sources.}

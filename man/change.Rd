@@ -4,10 +4,10 @@
 \alias{change}
 \title{Handle Abundance Reductions During Mortality Sub-Phases}
 \usage{
-change(n, change)
+change(probs, change)
 }
 \arguments{
-\item{n}{A numeric vector representing the weighted vulnerability or abundance
+\item{probs}{A numeric vector representing the weighted vulnerability or abundance
 profile of species within the targeted patch.}
 
 \item{change}{An integer specifying the number of individuals to select and

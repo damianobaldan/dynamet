@@ -307,14 +307,72 @@ plot(r_dom)
 
 ```
 
+## 5. Advanced: Spatial Eco-Evolutionary Feedbacks via Updater
+
+This example demonstrates bipartite ecological assembly (e.g., plants and pollinators) 
+using masterEqMetacommMutualistic(). Local recruitment probabilities in each guild are 
+co-facilitated by species abundances from the interacting 
+guild via a bipartite matrix alpha.animal.plant ($S_{animal} \times S_{plant}$).
 
 
+```{r mutualistic, fig.width=8, fig.height=5}
+
+# 1. Setup Spatial Landscape (10x10 Grid)
+r <- rast(ncol = 10, nrow = 10, xmin = 0, xmax = 10, ymin = 0, ymax = 10)
+C <- ncell(r)
+
+coords <- crds(r)
+dists <- as.matrix(dist(coords))
+M.migra <- 10^(-0.1 * dists)
+
+# 2. Define Guild Specifications (15 Animal Species, 25 Plant Species)
+S_animal <- 30
+S_plant  <- 25
+
+Meta.pool.animal <- runif(S_animal)
+Meta.pool.plant <- runif(S_plant)
+
+Js.animal <- rep(50, C)
+Js.plant  <- rep(100, C)
+
+# 3. Create Bipartite Mutualistic Matrix (S_animal x S_plant)
+alpha.animal.plant <- matrix(
+  rbinom(S_animal * S_plant, size = 1, prob = 0.25),
+                             nrow = S_animal, ncol = S_plant)
+alpha.animal.plant <- alpha.animal.plant * runif(S_animal * S_plant, 0.1, 0.5)
+
+# 4. Simulate Mutualistic Metacommunity Dynamics
+results_mut <- masterEqMutualistic(
+  Meta.pool.animal = Meta.pool.animal,
+  Meta.pool.plant  = Meta.pool.plant,
+  Js.animal        = Js.animal,
+  Js.plant         = Js.plant,
+  M.migra.animal   = M.migra,
+  M.migra.plant    = M.migra,
+  m.pool.animal    = 0.05,
+  m.pool.plant     = 0.05,
+  alpha.animal.plant = alpha.animal.plant,
+  nIterations      = 300,
+  verbose          = FALSE
+)
+
+# 5. Map Alpha Diversity for Both Guilds
+alpha_animal <- colSums(results_mut$Meta.animal > 0)
+alpha_plant  <- colSums(results_mut$Meta.plant > 0)
+
+r_animal <- r
+values(r_animal) <- alpha_animal
+
+r_plant <- r
+values(r_plant) <- alpha_plant
+
+# Visualize Spatial Guild Distributions
+par(mfrow = c(1, 2))
+plot(r_animal, main = "Animal Alpha Diversity", col = hcl.colors(10, "Warm"))
+plot(r_plant, main = "Plant Alpha Diversity", col = hcl.colors(10, "YlGn"))
+
+plot(r_animal, r_plant)
 
 
-
-
-
-
-
-
+```
 

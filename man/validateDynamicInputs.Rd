@@ -4,12 +4,27 @@
 \alias{validateDynamicInputs}
 \title{Validate inputs for dynamicMetacomm}
 \usage{
-validateDynamicInputs(args_list, nEpochs, init.comm, updater)
+validateDynamicInputs(
+  args_list,
+  nEpochs,
+  init.comm,
+  updater,
+  is_mutualistic,
+  dots
+)
 }
 \arguments{
 \item{args_list}{A list of all arguments passed to dynamicMetacomm.}
 
 \item{nEpochs}{The intended number of simulation epochs.}
+
+\item{init.comm}{Initial community input object.}
+
+\item{updater}{Feedback updater function.}
+
+\item{is_mutualistic}{Logical flag indicating mutualistic simulation mode.}
+
+\item{dots}{Original dot arguments list.}
 }
 \description{
 Validate inputs for dynamicMetacomm

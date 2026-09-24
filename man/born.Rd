@@ -4,10 +4,10 @@
 \alias{born}
 \title{Random Multinomial Selection of New Recruits}
 \usage{
-born(n, dead.by.it, M.pool, m.pool)
+born(probs, dead.by.it, M.pool, m.pool)
 }
 \arguments{
-\item{n}{A numeric vector representing the raw species recruitment weights or
+\item{probs}{A numeric vector representing the raw species recruitment weights or
 abundances derived from local and neighboring patches.}
 
 \item{dead.by.it}{An integer specifying the number of individuals (vacancies)

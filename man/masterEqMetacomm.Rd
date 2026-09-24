@@ -32,7 +32,7 @@ or probabilities of species within the regional species pool.}
 \item{Js}{A numeric vector of length C setting the local carrying capacity (total
 individual slots) for each community patch.}
 
-\item{M.migra}{A square numeric matrix of dimensions C x C establishing spatial
+\item{M.migra}{A square numeric matrix of dimensions (C x C) establishing spatial
 migration connectivity and dispersal probabilities between patches. Cannot be NULL. The diagonal term
 represents the self-recruitment (i.e. individuals sampled from the same patch).}
 

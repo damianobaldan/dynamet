@@ -5,7 +5,7 @@
 #' multinomial draw. The sampling probabilities are calculated as a weighted blend
 #' of local/neighboring species abundances and the regional species pool.
 #'
-#' @param n A numeric vector representing the raw species recruitment weights or
+#' @param probs A numeric vector representing the raw species recruitment weights or
 #'   abundances derived from local and neighboring patches.
 #' @param dead.by.it An integer specifying the number of individuals (vacancies)
 #'   to sample for recruitment during this step.
@@ -20,8 +20,8 @@
 #' @importFrom stats rmultinom
 #' @keywords internal
 #'
-born <- function(n, dead.by.it, M.pool, m.pool) {
-  stats::rmultinom(1, dead.by.it, (1 - m.pool) * (n / sum(n)) + m.pool * M.pool)
+born <- function(probs, dead.by.it, M.pool, m.pool) {
+  stats::rmultinom(1, dead.by.it, (1 - m.pool) * (probs / sum(probs)) + m.pool * M.pool)
 }
 
 
@@ -33,7 +33,7 @@ born <- function(n, dead.by.it, M.pool, m.pool) {
 #' community patch. The probability of death is weighted by current species
 #' abundances and their respective environmental filtering penalties.
 #'
-#' @param n A numeric vector representing the weighted vulnerability or abundance
+#' @param probs A numeric vector representing the weighted vulnerability or abundance
 #'   profile of species within the targeted patch.
 #' @param change An integer specifying the number of individuals to select and
 #'   remove (kill) from the patch.
@@ -44,8 +44,8 @@ born <- function(n, dead.by.it, M.pool, m.pool) {
 #' @importFrom stats rmultinom
 #' @keywords internal
 #'
-change <- function(n, change) {
-  stats::rmultinom(1, change, n)
+change <- function(probs, change) {
+  stats::rmultinom(1, change, probs)
 }
 
 

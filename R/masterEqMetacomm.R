@@ -13,7 +13,7 @@
 #'   or probabilities of species within the regional species pool.
 #' @param Js A numeric vector of length C setting the local carrying capacity (total
 #'   individual slots) for each community patch.
-#' @param M.migra A square numeric matrix of dimensions C x C establishing spatial
+#' @param M.migra A square numeric matrix of dimensions (C x C) establishing spatial
 #'   migration connectivity and dispersal probabilities between patches. Cannot be NULL. The diagonal term
 #'   represents the self-recruitment (i.e. individuals sampled from the same patch).
 #' @param m.pool A single numeric value between 0 and 1 defining the probability of
@@ -132,6 +132,11 @@ masterEqMetacomm <- function(Meta.pool, Js, M.migra, m.pool, d.spp = NULL,
     }
   }
 
+  # Extend scalar temperature (Ts) to match total communities (C)
+  if (length(Ts) == 1) {
+    Ts <- rep(Ts, C)
+  }
+
 
   #----------- 3. THERMAL DEPENDENCE CALCULATIONS -----------
 
@@ -221,7 +226,7 @@ masterEqMetacomm <- function(Meta.pool, Js, M.migra, m.pool, d.spp = NULL,
       new <- apply(Pool.neighbor[, id.j, drop = FALSE], 2, born, dead.by.it = 1, M.pool = Meta.pool, m.pool = m.pool)
       Meta[, id.j] <- Meta[, id.j] + new
     } else {
-      Meta[, id.j] <- Meta[, id.j] + born(n = Pool.neighbor[, id.j], dead.by.it = 1, M.pool = Meta.pool, m.pool = m.pool)
+      Meta[, id.j] <- Meta[, id.j] + born(probs = Pool.neighbor[, id.j], dead.by.it = 1, M.pool = Meta.pool, m.pool = m.pool)
     }
 
     if(verbose){ cat("coalescent construction in J:", ii, "of", max(Js), "\n") }
@@ -251,6 +256,8 @@ masterEqMetacomm <- function(Meta.pool, Js, M.migra, m.pool, d.spp = NULL,
       # Update community memory cache if at checkpoint
       if (iteration %in% generations) { Meta.lag <- Meta }
 
+
+
       # --- Death Sub-phase ---
       for (dead in 1:max.dead.by.it) {
 
@@ -262,9 +269,11 @@ masterEqMetacomm <- function(Meta.pool, Js, M.migra, m.pool, d.spp = NULL,
           Meta[, id.dead] <- Meta[, id.dead] - apply(Meta[, id.dead] * (1.001 - FF[, id.dead]), 2, FUN = change, change = 1)
         }
         if (length(id.dead) == 1) {
-          Meta[, id.dead] <- Meta[, id.dead] - change(n = Meta[, id.dead] * (1.001 - FF[, id.dead]), change = 1)
+          Meta[, id.dead] <- Meta[, id.dead] - change(probs = Meta[, id.dead] * (1.001 - FF[, id.dead]), change = 1)
         }
       }
+
+
 
       # --- Recruitment Sub-phase ---
 
@@ -298,6 +307,8 @@ masterEqMetacomm <- function(Meta.pool, Js, M.migra, m.pool, d.spp = NULL,
       if(verbose){ cat("lottery iteration", iteration, "of", nIterations, "\n")}
     }
   }
+
+
 
   return(Meta)
 }
@@ -411,7 +422,17 @@ validateMetaInputs <- function(
     }
   }
 
+  # Check id.fixed for out-of-bounds community indices
   if (!is.null(id.fixed) && (any(id.fixed < 1) || any(id.fixed > C))) stop("'id.fixed' contains out-of-bounds community indices.")
+
+
+  # Check Ts dimensions
+  if (!(length(Ts) %in% c(1, C))) {
+    stop(sprintf(
+      "Dimension mismatch: 'Ts' must be either a scalar (length 1) or a vector equal to the number of communities C (%d). Got length %d.",
+      C, length(Ts)
+    ))
+  }
 
   # ----------------------------------------------------------------------------
   # 3. VALUE AND BOUNDARY CONSTRAINTS (Includes Zero-Sum / NaN Protections)

@@ -9,16 +9,19 @@ dynamicMetacomm(nEpochs, ..., init.comm = NULL, updater = NULL)
 \arguments{
 \item{nEpochs}{The number of iterations/epochs to run.}
 
-\item{...}{All arguments passed to masterEqMetacomm. If an argument is a list,
-it must have length 1 (constant) or length nEpochs (dynamic).}
+\item{...}{All arguments passed to \code{masterEqMetacomm} or
+\code{masterEqMetacommMutualistic}. If an argument is a list, it must have
+length 1 (constant) or length \code{nEpochs} (dynamic).}
 
-\item{init.comm}{Initial community state (optional).}
+\item{init.comm}{Initial community state (optional). For standard models, a matrix;
+for mutualistic models, a named list with \code{Meta.animal} and \code{Meta.plant} matrices.}
 
-\item{updater}{A function that takes (current_comm, current_args) and
+\item{updater}{A function that takes \code{(current_comm, current_args)} and
 returns an updated list of args for the next epoch.}
 }
 \value{
-A list of length nEpochs containing the resulting community matrix for each epoch.
+A list of length \code{nEpochs} containing the resulting community matrix
+(or list of matrices for mutualistic dynamics) for each epoch.
 }
 \description{
 Simulate Metacommunity Dynamics Over Multiple Epochs

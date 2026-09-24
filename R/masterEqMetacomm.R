@@ -1,20 +1,21 @@
 #' Simulate Metacommunity Dynamics via Coalescent Assembly and lottery Phases
 #'
 #' @description
-#' This function models metacommunity assembly and demographic turnover across a
-#' network of local communities. It initiates patches using a coalescent
+#' This function models metacommunity assembly and demographic turnover for \code{S} species across a
+#' network of \code{C} local communities. The model initiates patches using a coalescent
 #' process up to local carrying capacities (\code{Js}). Then, an optional neutral/niche
-#' lottery dynamic is used to simulate metacommunities. The simulation incorporates spatial migration, regional pool
-#' immigration, self-recruitment, species-specific dispersal constraints (\code{d.spp}), environmental filtering (\code{FF}),
-#' interspecific competition (\code{alpha}), and temperature-dependent mortality
-#' scaled via the Arrhenius equation.
+#' lottery dynamic is used to simulate metacommunities. The simulation incorporates spatial migration (\code{M.migra}), regional pool
+#' immigration (\code{Meta.pool, m.pool}), self-recruitment, species-specific dispersal constraints (\code{d.spp}), environmental filtering (\code{FF}),
+#' interspecific competition (\code{alpha, Q}), and temperature-dependent mortality
+#' scaled via the Arrhenius equation (\code{Ea, Ts}).
 #'
 #' @param Meta.pool A numeric vector of length S representing the relative abundances
 #'   or probabilities of species within the regional species pool.
 #' @param Js A numeric vector of length C setting the local carrying capacity (total
 #'   individual slots) for each community patch.
 #' @param M.migra A square numeric matrix of dimensions C x C establishing spatial
-#'   migration connectivity and dispersal probabilities between patches. Cannot be NULL.
+#'   migration connectivity and dispersal probabilities between patches. Cannot be NULL. The diagonal term
+#'   represents the self-recruitment (i.e. individuals sampled from the same patch).
 #' @param m.pool A single numeric value between 0 and 1 defining the probability of
 #'   recruitment originating from the global regional pool rather than local/neighboring sources.
 #' @param d.spp An optional numeric vector of length S dictating species-specific dispersal traits.
@@ -49,7 +50,7 @@
 #' @param verbose A single logical value. If \code{TRUE} (default), outputs live processing
 #'   milestones and loop updates to the console.
 #'
-#' @returns A numeric matrix of dimensions S x C where cells hold the absolute abundance
+#' @returns A numeric matrix of dimensions \code{S} x \code{C} where cells hold the absolute abundance
 #'   counts of individuals for each species across all simulated community patches.
 #'
 #' @author Matias Arim & Ana Borthagaray
@@ -100,6 +101,9 @@ masterEqMetacomm <- function(Meta.pool, Js, M.migra, m.pool, d.spp = NULL,
   # Normalize vectors to represent relative probabilities summing to 1
   d.spp      <- d.spp / sum(d.spp)
   Meta.pool  <- Meta.pool / sum(Meta.pool)
+
+  # Normalize M.migra by column
+  M.migra <- sweep(M.migra, 2, colSums(M.migra), FUN = "/") * (1 - m.pool)
 
   # Normalize comm.fixed if it is not NULL
   if (!is.null(comm.fixed)) {

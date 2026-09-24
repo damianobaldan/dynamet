@@ -7,6 +7,9 @@ devtools::install_github("damianobaldan/dynamet", build_vignettes = TRUE)
 
 # Changelog
 
+0.1.4
+* Added M.migra normalization
+
 0.1.3
 * Added Q argument to masterEqMetacomm()
 * updated vignette

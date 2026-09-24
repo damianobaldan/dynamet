@@ -33,7 +33,8 @@ or probabilities of species within the regional species pool.}
 individual slots) for each community patch.}
 
 \item{M.migra}{A square numeric matrix of dimensions C x C establishing spatial
-migration connectivity and dispersal probabilities between patches. Cannot be NULL.}
+migration connectivity and dispersal probabilities between patches. Cannot be NULL. The diagonal term
+represents the self-recruitment (i.e. individuals sampled from the same patch).}
 
 \item{m.pool}{A single numeric value between 0 and 1 defining the probability of
 recruitment originating from the global regional pool rather than local/neighboring sources.}
@@ -84,17 +85,17 @@ run inside the lottery loop.}
 milestones and loop updates to the console.}
 }
 \value{
-A numeric matrix of dimensions S x C where cells hold the absolute abundance
+A numeric matrix of dimensions \code{S} x \code{C} where cells hold the absolute abundance
 counts of individuals for each species across all simulated community patches.
 }
 \description{
-This function models metacommunity assembly and demographic turnover across a
-network of local communities. It initiates patches using a coalescent
+This function models metacommunity assembly and demographic turnover for \code{S} species across a
+network of \code{C} local communities. The model initiates patches using a coalescent
 process up to local carrying capacities (\code{Js}). Then, an optional neutral/niche
-lottery dynamic is used to simulate metacommunities. The simulation incorporates spatial migration, regional pool
-immigration, self-recruitment, species-specific dispersal constraints (\code{d.spp}), environmental filtering (\code{FF}),
-interspecific competition (\code{alpha}), and temperature-dependent mortality
-scaled via the Arrhenius equation.
+lottery dynamic is used to simulate metacommunities. The simulation incorporates spatial migration (\code{M.migra}), regional pool
+immigration (\code{Meta.pool, m.pool}), self-recruitment, species-specific dispersal constraints (\code{d.spp}), environmental filtering (\code{FF}),
+interspecific competition (\code{alpha, Q}), and temperature-dependent mortality
+scaled via the Arrhenius equation (\code{Ea, Ts}).
 }
 \author{
 Matias Arim & Ana Borthagaray

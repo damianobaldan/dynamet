@@ -7,6 +7,11 @@ devtools::install_github("damianobaldan/dynamet", build_vignettes = TRUE)
 
 # Changelog
 
+0.2.0
+* Tested masterEqMutualistic() function for mutualistic metacommunities
+* Included mutualistic example in vignette
+* Added the possibility to run dynamicMetacomm and replicateDynamicMetacomm with mutualistic metacommunities
+
 0.1.5
 * Added masterEqMutualistic() function for mutualistic metacommunities
 

@@ -221,7 +221,7 @@ masterEqMutualistic <- function(Meta.pool.animal, Meta.pool.plant,
       for (zc in zero_cols) Pool.neighbor.animal[, zc] <- Meta.pool.animal
 
       if (length(id.j.animal) > 1) {
-        new.a <- apply(Pool.neighbor.animal[, id.j.animal, drop = FALSE], 2, born, dead.by.it = 1, M.pool = Meta.pool.animal, m.pool = m.pool.animal)
+        new.a <- apply(Pool.neighbor.animal[, id.j.animal, drop = FALSE], 2, FUN = born, dead.by.it = 1, M.pool = Meta.pool.animal, m.pool = m.pool.animal)
         Meta.animal[, id.j.animal] <- Meta.animal[, id.j.animal] + new.a
       } else {
         Meta.animal[, id.j.animal] <- Meta.animal[, id.j.animal] + born(probs = Pool.neighbor.animal[, id.j.animal], dead.by.it = 1, M.pool = Meta.pool.animal, m.pool = m.pool.animal)
@@ -252,7 +252,7 @@ masterEqMutualistic <- function(Meta.pool.animal, Meta.pool.plant,
       for (zc in zero_cols) Pool.neighbor.plant[, zc] <- Meta.pool.plant
 
       if (length(id.j.plant) > 1) {
-        new.p <- apply(Pool.neighbor.plant[, id.j.plant, drop = FALSE], 2, born, dead.by.it = 1, M.pool = Meta.pool.plant, m.pool = m.pool.plant)
+        new.p <- apply(Pool.neighbor.plant[, id.j.plant, drop = FALSE], 2, FUN = born, dead.by.it = 1, M.pool = Meta.pool.plant, m.pool = m.pool.plant)
         Meta.plant[, id.j.plant] <- Meta.plant[, id.j.plant] + new.p
       } else {
         Meta.plant[, id.j.plant] <- Meta.plant[, id.j.plant] + born(probs = Pool.neighbor.plant[, id.j.plant], dead.by.it = 1, M.pool = Meta.pool.plant, m.pool = m.pool.plant)

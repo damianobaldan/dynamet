@@ -16,19 +16,27 @@ replicateDynamicMetacomm(
 \arguments{
 \item{nReplicates}{Integer. The number of independent simulation runs.}
 
-\item{nEpochs}{Integer. Passed to dynamicMetacomm.}
+\item{nEpochs}{Integer. Passed to \code{dynamicMetacomm}.}
 
-\item{...}{Arguments passed to dynamicMetacomm / masterEqMetacomm.}
+\item{...}{Arguments passed to \code{dynamicMetacomm}, \code{masterEqMetacomm},
+or \code{masterEqMetacommMutualistic}.}
 
-\item{init.comm}{Matrix or NULL. Passed to dynamicMetacomm.}
+\item{init.comm}{Starting community state. For standard dynamics, a numeric matrix
+or NULL. For mutualistic dynamics, a list containing \code{Meta.animal} and
+\code{Meta.plant} matrices. Alternatively, a list of length \code{nReplicates}
+containing distinct initial conditions for each replicate.}
 
-\item{updater}{Function. Passed to dynamicMetacomm.}
+\item{updater}{Function. Optional parameter updater function passed to \code{dynamicMetacomm}.}
 
-\item{n_cores}{Integer. Number of CPU cores to use. If 1, runs sequentially without setting up a parallel backend.}
+\item{n_cores}{Integer. Number of CPU cores to use. If 1, runs sequentially
+without setting up a parallel backend.}
 }
 \value{
-A list of length nReplicates containing simulation trajectories.
+A list of length \code{nReplicates}, where each element contains the
+epoch trajectory output from \code{dynamicMetacomm}.
 }
 \description{
-Run Stochastic Replicates of dynamicMetacomm (Sequential or Parallel)
+Executes multiple independent simulation replicates of \code{dynamicMetacomm}.
+Supports both unipartite (standard) and bipartite mutualistic metacommunity
+models in sequential or parallel processing modes.
 }

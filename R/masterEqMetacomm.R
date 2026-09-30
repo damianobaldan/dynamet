@@ -153,7 +153,7 @@ masterEqMetacomm <- function(Meta.pool, Js, M.migra, m.pool, d.spp = NULL,
 
   # Determine integer count of deaths per community per iteration
   dead.by.it <- round(prop.dead.by.comm * Js, 0)
-  dead.by.it <- ifelse(dead.by.it < 2, 2, dead.by.it) # Enforce a minimum floor of 2 deaths
+  # dead.by.it <- ifelse(dead.by.it < 2, 2, dead.by.it) # Enforce a minimum floor of 2 deaths
 
   # Avoid fixed communities from undergoing standard mortality
   if (!is.null(id.fixed)) {
@@ -466,7 +466,7 @@ validateMetaInputs <- function(
   # Ecological and Mathematical boundary safeguards
   if (m.pool < 0 || m.pool > 1)                     stop("'m.pool' regional immigration rate must be between 0 and 1.")
   if (prop.dead.by.it <= 0 || prop.dead.by.it >= 1) stop("'prop.dead.by.it' baseline mortality fraction must be between 0 and 1.")
-  if (any(Js <= 0))                                 stop("Carrying capacities in 'Js' must be strictly positive integers.")
+  if (any(Js < 0))                                 stop("Carrying capacities in 'Js' must be positive integers or zero.")
   if (nIterations <= 0)                             stop("Number of lottery iterations 'it' must be a positive integer.")
 
   # Enforce strict probability bounds on FF and catch all-zero crash conditions

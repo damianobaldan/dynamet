@@ -470,7 +470,9 @@ summary(lm(alpha_animal ~ alpha_plant))
 
 ```
 
-## 6. Landscape degradation example
+## 6. Landscape degradation
+
+We simulate a disturbance event that reduces carrying capacity (`Js`) in the eastern half of the landscape (X >= 5) for a defined period of epochs. After the disturbance, we track the recovery of alpha diversity in both disturbed and undisturbed regions.
 
 ```{r dynamic-recolonization, fig.width=10, fig.height=8}
 
@@ -482,7 +484,7 @@ S <- 200
 # Spatial coordinates & Distance-decay migration
 coords <- crds(r)
 dists  <- as.matrix(dist(coords))
-M.migra <- 10^(-0.5 * dists)
+M.migra <- 10^(-0.7 * dists)
 diag(M.migra) <- 1.0
 
 # Species & Environment Parameters
@@ -498,14 +500,14 @@ disturbance_mask <- coords[, 1] >= 5
 # 2. Construct Js as a List Across Epochs (Disturbance Epochs 100-200)
 nEpochs <- 500
 start_disturbance <- 200
-end_disturbance   <- 300
+end_disturbance   <- 250
 
 Js_list <- vector("list", nEpochs)
 
 for (ep in 1:nEpochs) {
   if (ep >= start_disturbance && ep <= end_disturbance) {
     Js_epoch <- Js_baseline
-    Js_epoch[disturbance_mask] <- 10  
+    Js_epoch[disturbance_mask] <- 1  
     Js_list[[ep]] <- Js_epoch
   } else {
     Js_list[[ep]] <- Js_baseline
@@ -548,6 +550,10 @@ plot(1:epochs_count, mean_alpha_disturbed, type = "l", col = "firebrick", lwd = 
 lines(1:epochs_count, mean_alpha_undisturbed, col = "navy", lwd = 2, lty = 2)
 rect(xleft = start_disturbance, ybottom = -5, xright = end_disturbance, ytop = 100, 
      col = adjustcolor("orange", alpha.f = 0.2), border = NA)
+legend("topright", legend = c("Disturbed", "Undisturbed", "Disturbance time window" ),
+       col = c("firebrick", "navy", adjustcolor("orange", alpha.f = 0.5)), 
+       lty = c(1, 2, 1), lwd = c(2, 2, 6), bty = "n")
+
 grid()
 
 
@@ -555,9 +561,95 @@ grid()
 
 ```
 
+## 7. Change in spatial filter
 
+```{r dynamic-spatial filter, fig.width=10, fig.height=8}
 
+# 1. Setup Spatial Landscape (10x10)
+r <- rast(ncol = 10, nrow = 10, xmin = 0, xmax = 10, ymin = 0, ymax = 10)
+C <- ncell(r)
+S <- 50
+s_sens <- 20
+s_tol  <- S - s_sens
 
+# Spatial coordinates & Distance-decay migration
+coords <- crds(r)
+dists <- as.matrix(dist(coords))
+M.migra <- 10^(-0.5 * dists)
+diag(M.migra) <- 1.0
+
+# Parameters
+Js_baseline <- rep(50, C)
+Meta.pool   <- runif(S)
+Meta.pool   <- Meta.pool / sum(Meta.pool)
+d.spp       <- rep(1, S)
+
+# Define East-half disturbance mask (X >= 5) and species groups
+disturbance_mask <- coords[, 1] >= 5
+sensitive_spp    <- 1:s_sens
+tolerant_spp     <- s_tol:S
+
+# 2. Construct FF as a List of Matrices Across Epochs
+nEpochs <- 500
+start_disturbance <- 100
+end_disturbance   <- 200
+
+FF_baseline <- matrix(0.5, nrow = S, ncol = C)
+FF_list     <- vector("list", nEpochs)
+
+for (ep in 1:nEpochs) {
+  if (ep >= start_disturbance && ep <= end_disturbance) {
+    FF_epoch <- FF_baseline
+    # Reduce environmental suitability ONLY for sensitive species in East zone
+    FF_epoch[sensitive_spp, disturbance_mask] <- 0.05
+    FF_list[[ep]] <- FF_epoch
+  } else {
+    FF_list[[ep]] <- FF_baseline
+  }
+}
+
+# 3. Run Dynamic Metacommunity Simulation (Passing FF_list directly)
+results_ff <- dynamicMetacomm(
+  nEpochs     = nEpochs,
+  Meta.pool   = Meta.pool,
+  Js          = Js_baseline,   # Static carrying capacity
+  M.migra     = M.migra,
+  m.pool      = 0.001,
+  d.spp       = d.spp,
+  FF          = FF_list,       # Time-varying filter matrix list
+  nIterations = 1,
+  verbose     = FALSE
+)
+
+# 4. Extract Species Group Abundances in the Disturbed East Zone
+epochs_count <- length(results_ff)
+mean_abund_sensitive <- numeric(epochs_count)
+mean_abund_tolerant  <- numeric(epochs_count)
+
+for (ep in 1:epochs_count) {
+  comm <- results_ff[[ep]]
+  
+  # Average abundance per cell in East zone
+  mean_abund_sensitive[ep] <- mean(colSums(comm[sensitive_spp, disturbance_mask, drop = FALSE]))
+  mean_abund_tolerant[ep]  <- mean(colSums(comm[tolerant_spp, disturbance_mask, drop = FALSE]))
+}
+
+# Plot
+max_y <- max(c(mean_abund_sensitive, mean_abund_tolerant)) * 1.2
+plot(1:epochs_count, mean_abund_sensitive, type = "l", col = "firebrick", lwd = 2,
+     ylim = c(0, max_y), xlab = "Epoch", ylab = "Mean Abundance per Cell (East Zone)",
+     main = "Response to Dynamic FF Filter")
+lines(1:epochs_count, mean_abund_tolerant, col = "forestgreen", lwd = 2, lty = 2)
+
+rect(xleft = start_disturbance, ybottom = -5, xright = end_disturbance, ytop = max_y * 1.1, 
+     col = adjustcolor("orange", alpha.f = 0.2), border = NA)
+
+legend("topright", legend = c("Sensitive species", "Tolerant species", "Filter Drop Window"),
+       col = c("firebrick", "forestgreen", adjustcolor("orange", alpha.f = 0.5)), 
+       lty = c(1, 2, 1), lwd = c(2, 2, 6), bty = "n")
+grid()
+
+```
 
 
 

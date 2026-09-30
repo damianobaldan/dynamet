@@ -7,7 +7,10 @@ devtools::install_github("damianobaldan/dynamet", build_vignettes = TRUE)
 
 # Changelog
 
-0.2.0
+0.2.2
+* Included example with dynamid FF in the vignette
+
+0.2.1
 * Included filter_community in masterEqMetacomm() to filter excess species when Js is small and init.comm is provided (useful for filter simulations)
 
 0.2.0

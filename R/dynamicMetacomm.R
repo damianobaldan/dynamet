@@ -1,6 +1,6 @@
 #' Simulate Metacommunity Dynamics Over Multiple Epochs
 #'
-#' @param nEpochs The number of iterations/epochs to run.
+#' @param nEpochs The number of epochs to run (note that this is a different argument than nIterations).
 #' @param ... All arguments passed to \code{masterEqMetacomm} or
 #'   \code{masterEqMetacommMutualistic}. If an argument is a list, it must have
 #'   length 1 (constant) or length \code{nEpochs} (dynamic).

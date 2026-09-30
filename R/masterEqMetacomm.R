@@ -173,8 +173,9 @@ masterEqMetacomm <- function(Meta.pool, Js, M.migra, m.pool, d.spp = NULL,
   }
 
   # If initial community is provided, this becames the new metacommunity matrix
+  # Apply the filter if the provided initial community is too big
   if (!is.null(init.comm)) {
-    Meta <- init.comm
+    Meta <- filter_community(init.comm, Js, FF)
   }
 
   # Loop over communities to perform the coalescent assembly

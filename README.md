@@ -8,6 +8,9 @@ devtools::install_github("damianobaldan/dynamet", build_vignettes = TRUE)
 # Changelog
 
 0.2.0
+* Included filter_community in masterEqMetacomm() to filter excess species when Js is small and init.comm is provided (useful for filter simulations)
+
+0.2.0
 * Tested masterEqMutualistic() function for mutualistic metacommunities
 * Included mutualistic example in vignette
 * Added the possibility to run dynamicMetacomm and replicateDynamicMetacomm with mutualistic metacommunities

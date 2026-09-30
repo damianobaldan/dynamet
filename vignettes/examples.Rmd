@@ -16,7 +16,7 @@ knitr::opts_chunk$set(
 ```
 
 
-```{r packages }
+```{r packages, message=FALSE }
 library(terra)
 library(dynamet)
 library(dplyr)
@@ -32,19 +32,19 @@ receiving individuals from a regional pool of 5 species.
 ```{r single-community}
 # 1. Setup: 10 species in the regional pool
 S <- 5
-Meta.pool <- c(0.1, 0.2, 0.3, 0.3, 0.1) # Relative abundances
+Meta.pool <- c(0.1, 0.1, 0.2, 0.3, 0.5) # Relative abundances
 
 # 2. Parameters for a single community
 # Js: Carrying capacity of 500 individuals
 # M.migra: 1x1 matrix (closed system relative to other communities)
 Js <- 500
-M.migra <- matrix(1, nrow = 1, ncol = 1)
-m.pool <- 0.05  # 5% immigration rate from the meta-pool
-d.spp <- rep(1, S) # Uniform dispersal ability across species
+M.migra <- matrix(1, nrow = 1, ncol = 1) # Only one site considered
+m.pool <- 0.05  # 1% immigration rate from the meta-pool
+d.spp <- rep(0.5, S) # Uniform dispersal ability across species
 nEpochs = 20 # Set the number of epochs
 
 # 3. Initialize community with zero individuals
-init_comm <- matrix(0, nrow = S, ncol = 1)
+init_comm <- matrix( c(0.9, 0.9, 0.2, 0.2, 0.1), nrow = S, ncol = 1)
 
 # 4. Run for 10 epochs
 results <- dynamicMetacomm(
@@ -55,8 +55,8 @@ results <- dynamicMetacomm(
   m.pool = m.pool,
   d.spp = d.spp,
   lottery = TRUE,
-  nIterations = 200,
-  prop.dead.by.it = 0.1,
+  nIterations = 50,
+  prop.dead.by.it = 0.05,
   Ea = 0.5,
   init.comm = init_comm,
   verbose = FALSE
@@ -66,10 +66,29 @@ results <- dynamicMetacomm(
 sad_data <- do.call(rbind, lapply(1:nEpochs, function(i) {
   data.frame(
     Epoch = i,
+    Epoch_label = paste0("Epoch_", i),
     Species = factor(1:S),
     Abundance = as.vector(results[[i]])
   )
 }))
+
+# 6. add the relative abundance for the starting point and from the species pool
+sad_data <- rbind(
+  data.frame(
+    Epoch = 0,
+    Epoch_label = "Start",
+    Species = factor(1:S),
+    Abundance = as.vector(init_comm)
+  ),
+  sad_data,
+  data.frame(
+    Epoch = nEpochs + 1,
+    Epoch_label = "Pool",
+    Species = factor(1:S),
+    Abundance = Meta.pool 
+  )
+)
+
 
 # Plot: Stacked bar chart showing relative composition over time
 ggplot(sad_data, aes(x = factor(Epoch), y = Abundance, fill = Species)) +
@@ -93,16 +112,17 @@ capacity (`Js`) varies spatially and migration is constrained by distance.
 r <- rast(ncol=10, nrow=10, xmin=0, xmax=10, ymin=0, ymax=10)
 
 # 2. Create spatially structured Carrying Capacity (Js)
-values(r) <- 50 + 50 * sin(seq(0, pi, length.out=100))
-Js <- as.vector(floor(values(r)))
+# Sinusoidal gradient across the landscape
+Js_rast <- 20 + 50 * sin( init(r, "y") / 10 * pi)
+Js <- as.vector(floor(values(Js_rast)))
 
 # 3. Create Migration Matrix (M.migra)
 coords <- crds(r)
 dists <- as.matrix(dist(coords))
-M.migra <- 10^(-0.1 * dists)
+M.migra <- 10^(-0.01 * dists)
 
 # 4. Parameters
-S <- 50
+S <- 100
 Meta.pool <- runif(S)
 d.spp <- runif(S)
 
@@ -124,14 +144,19 @@ r_out <- r
 values(r_out) <- alpha_div
 
 # Visualize
-par(mfrow=c(1,2))
-plot(r, main = "Carrying Capacity (Js)", col = terrain.colors(10))
+par(mfrow=c(2,2))
+plot(Js_rast, main = "Carrying Capacity (Js)", col = terrain.colors(10))
 plot(r_out, main = "Alpha Diversity", col = cm.colors(10))
+plot(Js, alpha_div, xlab = "Carrying capacity", ylab = "Alpha diversity")
+
+# Check with a linear model the relationship between alpha and Js
+summary(lm(alpha_div ~ Js))
+
 ```
 
 ## 3. Spatial Metacommunity Simulation with a spatial filter
 
-In this example, we model 100 communitieswith 20 species arranged on a 10x10 grid, where carrying 
+In this example, we model 100 communities with 20 species arranged on a 10x10 grid, where carrying 
 capacity (`Js`) varies spatially and migration is constrained by distance.
 
 ```{r spatial-sim-filter, fig.width=8, fig.height=4}
@@ -170,18 +195,21 @@ results <- masterEqMetacomm(
   verbose = FALSE
 )
 
-# 5. Visualize a species' distribution filtered by the environment
+# 5. Calculate alpha diversity
 alpha_div <- colSums(ifelse(results > 0, 1, 0))
 r_out <- r
 values(r_out) <- alpha_div
 
 # Visualize
-par(mfrow=c(1,2))
+par(mfrow=c(1,3))
 plot(env_r, main = "Environment", col = terrain.colors(10))
 plot(r_out, main = "Alpha Diversity", col = cm.colors(10))
+plot(env_vals, alpha_div, xlab = "Environmental Value", ylab = "Alpha Diversity")
+
+summary(lm(alpha_div ~ env_vals))
 ```
 
-## 4. Advanced: Spatial Eco-Evolutionary Feedbacks via Updater
+## 4. Spatial Feedbacks via Updater
 
 In this example, we scale up to a spatial metacommunity (10x10 grid). We use the 
 `updater` function to dynamically modify the environmental/spatial filter each epoch 
@@ -200,7 +228,7 @@ S <- 50
 # 2. Migration and Parameters
 coords <- crds(r)
 dists <- as.matrix(dist(coords))
-M.migra <- 10^(-0.1 * dists)
+M.migra <- 10^(-0.05 * dists)
 
 Js <- rep(200, C)
 Meta.pool <- runif(S)
@@ -228,7 +256,7 @@ filter_updater <- function(current_comm, current_args) {
   dim(abund_scaled) <- dim(current_comm)
   
   # Calculate filter
-  new_FF <- current_FF - (0.5 * abund_scaled)
+  new_FF <- current_FF + (0.5 * abund_scaled)
   
   # Clamp values using matrix-safe indexing
   new_FF[new_FF < 0.1] <- 0.1
@@ -240,35 +268,35 @@ filter_updater <- function(current_comm, current_args) {
   return(list(FF = new_FF))
 }
 
-# 4. Run for exactly 1 Epoch
-results_one_epoch <- dynamicMetacomm(
-  nEpochs = 1,
-  Meta.pool = Meta.pool,
-  Js = Js,
-  M.migra = M.migra,
-  m.pool = 0.01,
-  d.spp = d.spp,
-  FF = FF_init,
-  updater = filter_updater,
-  nIterations = 500,
-  verbose = FALSE
-)
-
-# 5. Use spatial_updater() to calculate the new filter state
-updated_args <- filter_updater(current_comm = results_one_epoch[[1]], current_args = list(FF = FF_init))
-
-# 5. Plot Filter for two species
-par(mfrow = c(1, 2))
-
-r_updated_filter <- r
-values(r_updated_filter) <- updated_args$FF[1, ]
-plot(r_updated_filter, main = "Filter (Epoch 1) for species 1", 
-     col = hcl.colors(10, "Reds", rev = TRUE), zlim = c(0.1, 1.0))
-
-r_updated_filter <- r
-values(r_updated_filter) <- updated_args$FF[5, ]
-plot(r_updated_filter, main = "Filter (Epoch 1) for species 5", 
-     col = hcl.colors(10, "Reds", rev = TRUE), zlim = c(0.1, 1.0))
+# # 4. Run for exactly 1 Epoch
+# results_one_epoch <- dynamicMetacomm(
+#   nEpochs = 1,
+#   Meta.pool = Meta.pool,
+#   Js = Js,
+#   M.migra = M.migra,
+#   m.pool = 0.05,
+#   d.spp = d.spp,
+#   FF = FF_init,
+#   updater = filter_updater,
+#   nIterations = 500,
+#   verbose = FALSE
+# )
+# 
+# # 5. Use spatial_updater() to calculate the new filter state
+# updated_args <- filter_updater(current_comm = results_one_epoch[[1]], current_args = list(FF = FF_init))
+# 
+# # 5. Plot Filter for two species
+# par(mfrow = c(1, 2))
+# 
+# r_updated_filter <- r
+# values(r_updated_filter) <- updated_args$FF[1, ]
+# plot(r_updated_filter, main = "Filter (Epoch 1) for species 1", 
+#      col = hcl.colors(10, "Reds", rev = TRUE), zlim = c(0.1, 1.0))
+# 
+# r_updated_filter <- r
+# values(r_updated_filter) <- updated_args$FF[5, ]
+# plot(r_updated_filter, main = "Filter (Epoch 1) for species 5", 
+#      col = hcl.colors(10, "Reds", rev = TRUE), zlim = c(0.1, 1.0))
 
 
 # 7. Run the Dynamic Spatial Simulation across 5 Epochs
@@ -307,7 +335,7 @@ plot(r_dom)
 
 ```
 
-## 5. Advanced: Spatial Eco-Evolutionary Feedbacks via Updater
+## 5. Mutualistic networks
 
 This example demonstrates bipartite ecological assembly (e.g., plants and pollinators) 
 using masterEqMetacommMutualistic(). Local recruitment probabilities in each guild are 
@@ -323,56 +351,220 @@ C <- ncell(r)
 
 coords <- crds(r)
 dists <- as.matrix(dist(coords))
-M.migra <- 10^(-0.1 * dists)
+M.migra.plant <- 10^(-0.05 * dists)
+diag(M.migra.plant) <- 0
+M.migra.animal <- 10^(-0.02 * dists)
 
-# 2. Define Guild Specifications (15 Animal Species, 25 Plant Species)
-S_animal <- 30
-S_plant  <- 25
+# 2. Define Guild Specifications (20 Animal Species, 30 Plant Species)
+S_animal <- 50
+S_plant  <- 50
 
 Meta.pool.animal <- runif(S_animal)
+Meta.pool.animal <- Meta.pool.animal / sum(Meta.pool.animal)
+
 Meta.pool.plant <- runif(S_plant)
+Meta.pool.plant <- Meta.pool.plant / sum(Meta.pool.plant)
 
-Js.animal <- rep(50, C)
-Js.plant  <- rep(100, C)
+Js.animal <- rep(400, C)
+Js.plant  <- rep(400, C)
 
-# 3. Create Bipartite Mutualistic Matrix (S_animal x S_plant)
-alpha.animal.plant <- matrix(
-  rbinom(S_animal * S_plant, size = 1, prob = 0.25),
+# 3. Environmental Filters
+# Plant Filter: Sigmoidal suitability gradient centered at X = 5
+x_coords <- coords[, 1] / 10 # Normalized 0 to 1 across X-axis
+FF.plant <- matrix(0.001, nrow = S_plant, ncol = C)
+
+for (i in 1:S_plant) {
+  if (i <= 10) {
+    # 10 Western Specialists
+    FF.plant[i, ] <- ifelse(x_coords <= 5, 0.80, 0.001)
+  } else if (i <= 20) {
+    # 10 Eastern Specialists
+    FF.plant[i, ] <- ifelse(x_coords > 5, 0.80, 0.001)
+  } else {
+    # 5 Generalists
+    FF.plant[i, ] <- 0.05
+  }
+}
+
+# Animal Filter: Uniformly harsh environment (0.1) across all patches
+# Animals MUST have local mutualistic plant support to overcome this penalty
+FF.animal <- matrix(1, nrow = S_animal, ncol = C)
+
+# Ensure animal specialist suitabilities are balanced across species
+FF.animal <- matrix(0.01, nrow = S_animal, ncol = C)
+# If matching animal specialists to plant specialists:
+for (j in 1:S_animal) {
+  if (j <= 20) {
+    FF.animal[j, ] <- ifelse(x_coords > 5, 0.80, 0.001) # Equal suitability for all animal specialists
+  }
+}
+
+# 4. Create Strong Bipartite Facilitation Matrix
+alpha.animal.plant <- matrix(rbinom(S_animal * S_plant, size = 1, prob = 0.1),
                              nrow = S_animal, ncol = S_plant)
+# High interaction strengths amplify animal dependence on plant presence
 alpha.animal.plant <- alpha.animal.plant * runif(S_animal * S_plant, 0.1, 0.5)
 
-# 4. Simulate Mutualistic Metacommunity Dynamics
+# 
+# alpha.animal.plant <- matrix(0.01, nrow = S_animal, ncol = S_plant)
+# diag(alpha.animal.plant) <- 100 # Animal i depends strictly on Plant i
+
+plant_total_support <- colSums(alpha.animal.plant)
+plant_total_support[plant_total_support == 0] <- 1
+alpha.animal.plant <- sweep(alpha.animal.plant, 2, plant_total_support, FUN = "/") * 0.5
+
+alpha.animal.plant <- matrix(0, nrow = S_animal, ncol = S_plant)
+
+# 5. Simulate Dynamics with Strong Obligate Dependence
 results_mut <- masterEqMutualistic(
-  Meta.pool.animal = Meta.pool.animal,
-  Meta.pool.plant  = Meta.pool.plant,
-  Js.animal        = Js.animal,
-  Js.plant         = Js.plant,
-  M.migra.animal   = M.migra,
-  M.migra.plant    = M.migra,
-  m.pool.animal    = 0.05,
-  m.pool.plant     = 0.05,
+  Meta.pool.animal   = Meta.pool.animal,
+  Meta.pool.plant    = Meta.pool.plant,
+  Js.animal          = Js.animal,
+  Js.plant           = Js.plant,
+  M.migra.animal     = M.migra.animal,
+  M.migra.plant      = M.migra.plant,
+  m.pool.animal      = 0.05,
+  m.pool.plant       = 0.05,
+  FF.animal          = FF.animal,
+  FF.plant           = FF.plant,
   alpha.animal.plant = alpha.animal.plant,
-  nIterations      = 300,
-  verbose          = FALSE
+  nIterations        = 500,
+  verbose            = FALSE
 )
 
-# 5. Map Alpha Diversity for Both Guilds
+# 6. Map Suitability Filter and Alpha Diversity for Both Guilds
+mean_plant_suitability <- colMeans(FF.plant)
 alpha_animal <- colSums(results_mut$Meta.animal > 0)
 alpha_plant  <- colSums(results_mut$Meta.plant > 0)
 
-r_animal <- r
+alpha_animal <- rowSums(results_mut$Meta.animal)
+alpha_plant  <- rowSums(results_mut$Meta.plant)
+
+a <- results_mut$Meta.animal
+rowSums(a)
+
+b <- results_mut$Meta.plant
+rowSums(b)
+
+plot(Meta.pool.plant, log(rowSums(b)))
+plot(rowMeans(FF.plant), log(rowSums(results_mut$Meta.plant)))
+
+
+r_filter <- r_animal <- r_plant <- r
+values(r_filter) <- mean_plant_suitability
+values(r_plant)  <- alpha_plant
 values(r_animal) <- alpha_animal
 
-r_plant <- r
-values(r_plant) <- alpha_plant
+# 7. Visualize Filter and Spatial Guild Distributions
+par(mfrow = c(2, 2))
+plot(r_filter, main = "Mean Plant Filter (FF.plant)", col = hcl.colors(10, "Greens", rev = TRUE))
+plot(r_plant, main = "Plant Guild Alpha Diversity", col = hcl.colors(10, "YlGn"))
+plot(r_animal, main = "Animal Guild Alpha Diversity", col = hcl.colors(10, "Warm"))
 
-# Visualize Spatial Guild Distributions
-par(mfrow = c(1, 2))
-plot(r_animal, main = "Animal Alpha Diversity", col = hcl.colors(10, "Warm"))
-plot(r_plant, main = "Plant Alpha Diversity", col = hcl.colors(10, "YlGn"))
+plot(alpha_plant, alpha_animal, 
+     xlab = "Plant Alpha Diversity", 
+     ylab = "Animal Alpha Diversity",
+     main = "4. Plant Richness Effect on Animals",
+     pch = 19, col = adjustcolor("firebrick", alpha.f = 0.8), cex = 1.2)
+summary(lm(alpha_animal ~ alpha_plant))
 
-plot(r_animal, r_plant)
+```
+
+## 6. Landscape degradation example
+
+```{r dynamic-recolonization, fig.width=10, fig.height=8}
+
+# 1. Setup Spatial Landscape (10x10)
+r <- rast(ncol = 10, nrow = 10, xmin = 0, xmax = 10, ymin = 0, ymax = 10)
+C <- ncell(r)
+S <- 200
+
+# Spatial coordinates & Distance-decay migration
+coords <- crds(r)
+dists  <- as.matrix(dist(coords))
+M.migra <- 10^(-0.5 * dists)
+diag(M.migra) <- 1.0
+
+# Species & Environment Parameters
+Js_baseline <- rep(50, C) 
+Meta.pool   <- runif(S)
+Meta.pool   <- Meta.pool / sum(Meta.pool)
+d.spp       <- rep(1, S)
+
+
+# Define East-half disturbance mask (X >= 5)
+disturbance_mask <- coords[, 1] >= 5
+
+# 2. Construct Js as a List Across Epochs (Disturbance Epochs 100-200)
+nEpochs <- 500
+start_disturbance <- 200
+end_disturbance   <- 300
+
+Js_list <- vector("list", nEpochs)
+
+for (ep in 1:nEpochs) {
+  if (ep >= start_disturbance && ep <= end_disturbance) {
+    Js_epoch <- Js_baseline
+    Js_epoch[disturbance_mask] <- 10  
+    Js_list[[ep]] <- Js_epoch
+  } else {
+    Js_list[[ep]] <- Js_baseline
+  }
+}
+
+# 3. Run Dynamic Metacommunity Simulation
+results_recol <- dynamicMetacomm(
+  nEpochs     = nEpochs,
+  Meta.pool   = Meta.pool,
+  Js          = Js_list,
+  M.migra     = M.migra,
+  m.pool      = 0.01,
+  d.spp       = d.spp,
+  nIterations = 1,
+  verbose     = FALSE
+)
+
+# 4. Extract Alpha Across Epochs
+epochs_count <- length(results_recol)
+
+mean_alpha_disturbed   <- numeric(epochs_count)
+mean_alpha_undisturbed <- numeric(epochs_count)
+
+for (ep in 1:epochs_count) {
+  comm <- results_recol[[ep]]
+  
+  # Alpha Diversity
+  alpha <- colSums(comm > 0)
+  mean_alpha_disturbed[ep]   <- mean(alpha[disturbance_mask])
+  mean_alpha_undisturbed[ep] <- mean(alpha[!disturbance_mask])
+  
+}
+
+# 6. Plots
+plot(1:epochs_count, mean_alpha_disturbed, type = "l", col = "firebrick", lwd = 2,
+     ylim = c(0, max(mean_alpha_undisturbed) * 1.25), 
+     xlab = "Epoch", ylab = "Mean Alpha Diversity",
+     main = "Alpha Diversity Trajectory")
+lines(1:epochs_count, mean_alpha_undisturbed, col = "navy", lwd = 2, lty = 2)
+rect(xleft = start_disturbance, ybottom = -5, xright = end_disturbance, ytop = 100, 
+     col = adjustcolor("orange", alpha.f = 0.2), border = NA)
+grid()
+
+
 
 
 ```
+
+
+
+
+
+
+
+
+
+
+
+
+
 

@@ -7,7 +7,7 @@
 dynamicMetacomm(nEpochs, ..., init.comm = NULL, updater = NULL)
 }
 \arguments{
-\item{nEpochs}{The number of iterations/epochs to run.}
+\item{nEpochs}{The number of epochs to run (note that this is a different argument than nIterations).}
 
 \item{...}{All arguments passed to \code{masterEqMetacomm} or
 \code{masterEqMetacommMutualistic}. If an argument is a list, it must have

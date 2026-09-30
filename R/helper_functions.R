@@ -48,6 +48,69 @@ change <- function(probs, change) {
   stats::rmultinom(1, change, probs)
 }
 
+#' Prune Local Communities to Target Carrying Capacities
+#'
+#' Filters and downsamples a community abundance matrix when local site abundances
+#' exceed specified target carrying capacities (e.g., during environmental disturbance).
+#' Downsampling is performed via multinomial sampling, either neutrally based on current
+#' abundances or weighted by local species fitness values.
+#'
+#' @param Meta A numeric matrix of species abundances where rows represent
+#'   species (\eqn{S}) and columns represent local sites/cells (\eqn{C}).
+#' @param Js A numeric vector of length \eqn{C} specifying target carrying
+#'   capacities for each site.
+#' @param FF An optional numeric matrix of species fitness or environmental
+#'   suitability (\eqn{S \times C}). If provided, sampling probabilities are weighted
+#'   by \code{Meta * FF}. Defaults to \code{NULL} (neutral culling).
+#'
+#' @details
+#' For each site \eqn{c}, if total current abundance \eqn{\sum_i N_{i,c}} exceeds
+#' \code{Js[c]}, individual organisms are downsampled to match the target capacity.
+#' If \code{Js[c] <= 0}, all species abundances at site \eqn{c} are set to 0.
+#'
+#' @return A numeric matrix (\eqn{S \times C}) of filtered species abundances.
+#'
+#' @keywords internal
+#'
+filter_community <- function(Meta, Js, FF = NULL) {
+
+  # Get parameters
+  S <- nrow(Meta)
+  C <- ncol(Meta)
+
+  # Initialize filtered community matrix
+  Meta_filtered <- Meta
+
+  for (c in 1:C) {
+    current_N <- sum(Meta[, c])
+    target_J  <- Js[c]
+
+    # Downsample only if current population exceeds new capacity
+    if (current_N > target_J) {
+      if (target_J <= 0) {
+        Meta_filtered[, c] <- 0
+      } else {
+        # Calculate multinomial probabilities (fitness-weighted vs. neutral)
+        if (!is.null(FF)) {
+          weights <- Meta[, c] * FF[, c]
+        } else {
+          weights <- Meta[, c]
+        }
+
+        # Draw target_J surviving individuals from current occupants
+        if (sum(weights) > 0) {
+          Meta_filtered[, c] <- as.vector(stats::rmultinom(1, size = target_J, prob = weights ))
+        } else {
+          Meta_filtered[, c] <- 0
+        }
+      }
+    }
+  }
+
+  return(Meta_filtered)
+}
+
+
 
 #' Standardize Local Abundance Proportions Relative to Global Pool
 #'

@@ -1,4 +1,4 @@
-#' Simulate Metacommunity Dynamics via Coalescent Assembly and lottery Phases
+#' Simulate Metacommunity Dynamics
 #'
 #' @description
 #' This function models metacommunity assembly and demographic turnover for \code{S} species across a

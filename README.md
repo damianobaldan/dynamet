@@ -7,6 +7,10 @@ devtools::install_github("damianobaldan/dynamet", build_vignettes = TRUE)
 
 # Changelog
 
+0.2.3
+* Added niche width - facilitation tradeoff in masterEqMutualistic()
+* Added examples with mutualistic networks to the vignette
+
 0.2.2
 * Included example with dynamid FF in the vignette
 

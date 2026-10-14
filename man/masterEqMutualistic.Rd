@@ -2,7 +2,7 @@
 % Please edit documentation in R/masterEqMutualistic.R
 \name{masterEqMutualistic}
 \alias{masterEqMutualistic}
-\title{Simulate Mutualistic Metacommunity Dynamics (Animals and Plants)}
+\title{Simulate Mutualistic Metacommunity Dynamics with Niche Amplitude Trade-Offs}
 \usage{
 masterEqMutualistic(
   Meta.pool.animal,
@@ -20,6 +20,11 @@ masterEqMutualistic(
   alpha.animal = NULL,
   alpha.plant = NULL,
   alpha.animal.plant = NULL,
+  niches.mean.animal = NULL,
+  niches.sd.animal = NULL,
+  niches.mean.plant = NULL,
+  niches.sd.plant = NULL,
+  Q.LH = 1,
   init.comm.animal = NULL,
   init.comm.plant = NULL,
   id.fixed = NULL,
@@ -36,74 +41,77 @@ masterEqMutualistic(
 )
 }
 \arguments{
-\item{Meta.pool.animal}{Numeric vector of relative abundances for animal species (S_animal).}
+\item{Meta.pool.animal}{Relative abundances for animal species (S_animal).}
 
-\item{Meta.pool.plant}{Numeric vector of relative abundances for plant species (S_plant).}
+\item{Meta.pool.plant}{Relative abundances for plant species (S_plant).}
 
-\item{Js.animal}{Numeric vector of length C setting local carrying capacities for animals.}
+\item{Js.animal}{Vector of animal carrying capacities across C communities.}
 
-\item{Js.plant}{Numeric vector of length C setting local carrying capacities for plants.}
+\item{Js.plant}{Vector of plant carrying capacities across C communities.}
 
 \item{M.migra.animal}{Square matrix (C x C) of animal spatial migration probabilities.}
 
 \item{M.migra.plant}{Square matrix (C x C) of plant spatial migration probabilities.}
 
-\item{m.pool.animal}{Fraction (0 to 1) of animal recruits originating from regional pool.}
+\item{m.pool.animal}{Fraction (0 to 1) of animal recruits from regional pool.}
 
-\item{m.pool.plant}{Fraction (0 to 1) of plant recruits originating from regional pool.}
+\item{m.pool.plant}{Fraction (0 to 1) of plant recruits from regional pool.}
 
-\item{d.spp.animal}{Numeric vector (S_animal) of animal dispersal capabilities. Default is equal (1s).}
+\item{d.spp.animal}{Vector (S_animal) of animal dispersal capabilities.}
 
-\item{d.spp.plant}{Numeric vector (S_plant) of plant dispersal capabilities. Default is equal (1s).}
+\item{d.spp.plant}{Vector (S_plant) of plant dispersal capabilities.}
 
-\item{FF.animal}{Matrix (S_animal x C) of environmental filtering coefficients for animals.}
+\item{FF.animal}{Environmental filtering matrix (S_animal x C).}
 
-\item{FF.plant}{Matrix (S_plant x C) of environmental filtering coefficients for plants.}
+\item{FF.plant}{Environmental filtering matrix (S_plant x C).}
 
-\item{alpha.animal}{Square matrix (S_animal x S_animal) of animal competition coefficients.}
+\item{alpha.animal}{Square competition matrix (S_animal x S_animal). If NULL, computed from niches.}
 
-\item{alpha.plant}{Square matrix (S_plant x S_plant) of plant competition coefficients.}
+\item{alpha.plant}{Square competition matrix (S_plant x S_plant). If NULL, computed from niches.}
 
-\item{alpha.animal.plant}{Bipartite matrix (S_animal x S_plant) defining positive facilitation coefficients.}
+\item{alpha.animal.plant}{Facilitation matrix (S_animal x S_plant). If NULL, computed from niches.}
 
-\item{init.comm.animal}{Optional starting abundance matrix (S_animal x C) for animals.}
+\item{niches.mean.animal}{Vector (length S_animal) of animal niche centers.}
 
-\item{init.comm.plant}{Optional starting abundance matrix (S_plant x C) for plants.}
+\item{niches.sd.animal}{Vector (lengthS_animal) of animal niche widths (amplitudes).}
 
-\item{id.fixed}{Vector of community indices with static/locked compositions.}
+\item{niches.mean.plant}{Vector (lengthS_plant) of plant niche centers.}
 
-\item{comm.fixed.animal}{Vector or matrix (S_animal x length(id.fixed)) of fixed animal profiles.}
+\item{niches.sd.plant}{Vector (lengthS_plant) of plant niche widths (amplitudes).}
 
-\item{comm.fixed.plant}{Vector or matrix (S_plant x length(id.fixed)) of fixed plant profiles.}
+\item{Q.LH}{Trade-off exponent for mutualism scaling. Default is 1.}
 
-\item{m.temp.animal}{Matrix or vector setting memory/seed bank weights for animals.}
+\item{init.comm.animal}{Starting animal abundances (S_animal x C).}
 
-\item{m.temp.plant}{Matrix or vector setting memory/seed bank weights for plants.}
+\item{init.comm.plant}{Starting plant abundances (S_plant x C).}
 
-\item{prop.dead.by.it}{Baseline turnover fraction for the coldest patch.}
+\item{id.fixed}{Community indices with fixed compositions.}
 
-\item{Ea}{Activation energy (eV) for Arrhenius temperature scaling.}
+\item{comm.fixed.animal}{Fixed animal profile vector/matrix.}
 
-\item{Ts}{Vector of patch temperatures in Kelvin (> 0) or a single scalar temperature value.}
+\item{comm.fixed.plant}{Fixed plant profile vector/matrix.}
 
-\item{lottery}{Logical. If \code{TRUE}, runs the iterative turnover phase.}
+\item{m.temp.animal}{Animal memory / seed bank parameter.}
 
-\item{nIterations}{Total timeline steps for the lottery loop.}
+\item{m.temp.plant}{Plant memory / seed bank parameter.}
 
-\item{verbose}{Logical. If \code{TRUE}, prints progress updates to console.}
+\item{prop.dead.by.it}{Baseline turnover fraction.}
+
+\item{Ea}{Activation energy for Arrhenius temperature scaling.}
+
+\item{Ts}{Patch temperatures in Kelvin.}
+
+\item{lottery}{Logical. Runs iterative turnover if TRUE.}
+
+\item{nIterations}{Number of lottery loop timeline steps.}
+
+\item{verbose}{Prints progress updates if TRUE.}
 }
 \value{
-A list with two matrices:
-\item{Meta.animal}{Matrix (S_animal x C) of final animal abundances.}
-\item{Meta.plant}{Matrix (S_plant x C) of final plant abundances.}
+List with final animal and plant community matrices.
 }
 \description{
-Models bipartite metacommunity assembly and demographic turnover across a
-network of local communities for two mutually interacting species groups
-(animals and plants). Incorporates spatial migration, regional immigration,
-species-specific dispersal, environmental filtering, intraspecific/interspecific
-competition, temperature-dependent mortality, and bipartite facilitation.
-}
-\author{
-Matias Arim & Ana Borthagaray
+Models bipartite metacommunity assembly and turnover across a network of local communities.
+Incorporates niche amplitudes, niche-based interaction generation, and a trade-off
+where generalist species (larger niche amplitude) experience dampened facilitation performance.
 }

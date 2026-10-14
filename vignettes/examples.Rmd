@@ -335,142 +335,9 @@ plot(r_dom)
 
 ```
 
-## 5. Mutualistic networks
-
-This example demonstrates bipartite ecological assembly (e.g., plants and pollinators) 
-using masterEqMetacommMutualistic(). Local recruitment probabilities in each guild are 
-co-facilitated by species abundances from the interacting 
-guild via a bipartite matrix alpha.animal.plant ($S_{animal} \times S_{plant}$).
 
 
-```{r mutualistic, fig.width=8, fig.height=5}
-
-# 1. Setup Spatial Landscape (10x10 Grid)
-r <- rast(ncol = 10, nrow = 10, xmin = 0, xmax = 10, ymin = 0, ymax = 10)
-C <- ncell(r)
-
-coords <- crds(r)
-dists <- as.matrix(dist(coords))
-M.migra.plant <- 10^(-0.05 * dists)
-diag(M.migra.plant) <- 0
-M.migra.animal <- 10^(-0.02 * dists)
-
-# 2. Define Guild Specifications (20 Animal Species, 30 Plant Species)
-S_animal <- 50
-S_plant  <- 50
-
-Meta.pool.animal <- runif(S_animal)
-Meta.pool.animal <- Meta.pool.animal / sum(Meta.pool.animal)
-
-Meta.pool.plant <- runif(S_plant)
-Meta.pool.plant <- Meta.pool.plant / sum(Meta.pool.plant)
-
-Js.animal <- rep(400, C)
-Js.plant  <- rep(400, C)
-
-# 3. Environmental Filters
-# Plant Filter: Sigmoidal suitability gradient centered at X = 5
-x_coords <- coords[, 1] / 10 # Normalized 0 to 1 across X-axis
-FF.plant <- matrix(0.001, nrow = S_plant, ncol = C)
-
-for (i in 1:S_plant) {
-  if (i <= 10) {
-    # 10 Western Specialists
-    FF.plant[i, ] <- ifelse(x_coords <= 5, 0.80, 0.001)
-  } else if (i <= 20) {
-    # 10 Eastern Specialists
-    FF.plant[i, ] <- ifelse(x_coords > 5, 0.80, 0.001)
-  } else {
-    # 5 Generalists
-    FF.plant[i, ] <- 0.05
-  }
-}
-
-# Animal Filter: Uniformly harsh environment (0.1) across all patches
-# Animals MUST have local mutualistic plant support to overcome this penalty
-FF.animal <- matrix(1, nrow = S_animal, ncol = C)
-
-# Ensure animal specialist suitabilities are balanced across species
-FF.animal <- matrix(0.01, nrow = S_animal, ncol = C)
-# If matching animal specialists to plant specialists:
-for (j in 1:S_animal) {
-  if (j <= 20) {
-    FF.animal[j, ] <- ifelse(x_coords > 5, 0.80, 0.001) # Equal suitability for all animal specialists
-  }
-}
-
-# 4. Create Strong Bipartite Facilitation Matrix
-alpha.animal.plant <- matrix(rbinom(S_animal * S_plant, size = 1, prob = 0.1),
-                             nrow = S_animal, ncol = S_plant)
-# High interaction strengths amplify animal dependence on plant presence
-alpha.animal.plant <- alpha.animal.plant * runif(S_animal * S_plant, 0.1, 0.5)
-
-# 
-# alpha.animal.plant <- matrix(0.01, nrow = S_animal, ncol = S_plant)
-# diag(alpha.animal.plant) <- 100 # Animal i depends strictly on Plant i
-
-plant_total_support <- colSums(alpha.animal.plant)
-plant_total_support[plant_total_support == 0] <- 1
-alpha.animal.plant <- sweep(alpha.animal.plant, 2, plant_total_support, FUN = "/") * 0.5
-
-alpha.animal.plant <- matrix(0, nrow = S_animal, ncol = S_plant)
-
-# 5. Simulate Dynamics with Strong Obligate Dependence
-results_mut <- masterEqMutualistic(
-  Meta.pool.animal   = Meta.pool.animal,
-  Meta.pool.plant    = Meta.pool.plant,
-  Js.animal          = Js.animal,
-  Js.plant           = Js.plant,
-  M.migra.animal     = M.migra.animal,
-  M.migra.plant      = M.migra.plant,
-  m.pool.animal      = 0.05,
-  m.pool.plant       = 0.05,
-  FF.animal          = FF.animal,
-  FF.plant           = FF.plant,
-  alpha.animal.plant = alpha.animal.plant,
-  nIterations        = 500,
-  verbose            = FALSE
-)
-
-# 6. Map Suitability Filter and Alpha Diversity for Both Guilds
-mean_plant_suitability <- colMeans(FF.plant)
-alpha_animal <- colSums(results_mut$Meta.animal > 0)
-alpha_plant  <- colSums(results_mut$Meta.plant > 0)
-
-alpha_animal <- rowSums(results_mut$Meta.animal)
-alpha_plant  <- rowSums(results_mut$Meta.plant)
-
-a <- results_mut$Meta.animal
-rowSums(a)
-
-b <- results_mut$Meta.plant
-rowSums(b)
-
-plot(Meta.pool.plant, log(rowSums(b)))
-plot(rowMeans(FF.plant), log(rowSums(results_mut$Meta.plant)))
-
-
-r_filter <- r_animal <- r_plant <- r
-values(r_filter) <- mean_plant_suitability
-values(r_plant)  <- alpha_plant
-values(r_animal) <- alpha_animal
-
-# 7. Visualize Filter and Spatial Guild Distributions
-par(mfrow = c(2, 2))
-plot(r_filter, main = "Mean Plant Filter (FF.plant)", col = hcl.colors(10, "Greens", rev = TRUE))
-plot(r_plant, main = "Plant Guild Alpha Diversity", col = hcl.colors(10, "YlGn"))
-plot(r_animal, main = "Animal Guild Alpha Diversity", col = hcl.colors(10, "Warm"))
-
-plot(alpha_plant, alpha_animal, 
-     xlab = "Plant Alpha Diversity", 
-     ylab = "Animal Alpha Diversity",
-     main = "4. Plant Richness Effect on Animals",
-     pch = 19, col = adjustcolor("firebrick", alpha.f = 0.8), cex = 1.2)
-summary(lm(alpha_animal ~ alpha_plant))
-
-```
-
-## 6. Landscape degradation
+## 5. Landscape degradation
 
 We simulate a disturbance event that reduces carrying capacity (`Js`) in the eastern half of the landscape (X >= 5) for a defined period of epochs. After the disturbance, we track the recovery of alpha diversity in both disturbed and undisturbed regions.
 
@@ -561,7 +428,7 @@ grid()
 
 ```
 
-## 7. Change in spatial filter
+## 6. Change in spatial filter
 
 ```{r dynamic-spatial filter, fig.width=10, fig.height=8}
 
@@ -651,10 +518,225 @@ grid()
 
 ```
 
+## 7. Mutualistic networks: niche width - facilitation tradeoff
+
+This example demonstrates bipartite ecological assembly (e.g., plants and pollinators) 
+using masterEqMetacommMutualistic(). Local recruitment probabilities in each guild are  co-facilitated by species abundances from the interacting 
+guild via a bipartite matrix alpha.animal.plant ($S_{animal} \times S_{plant}$). In this example we show the effects of a niche width - facilitation tradeoff on the final abundances of animal species. We see that if the tradeoff is implemented the specialist species (narrow niche width) are dominating the metacommunity, while if the tradeoff is switched off (all species have the same niche width) a more even distribution is observed. 
+
+
+```{r mutualistic 1, fig.width=8, fig.height=5}
+
+# 1. Define Parameters for Mutualistic Simulation
+S <- 6
+C <- 10
+
+Meta.pool.animal <- rep(1 / S, S)
+Meta.pool.plant  <- rep(1 / S, S)
+
+Js.animal <- rep(200, C)
+Js.plant  <- rep(200, C)
+
+M_dist <- matrix(0.1, nrow = C, ncol = C)
+diag(M_dist) <- 0.7
+M.migra.animal <- sweep(M_dist, 2, colSums(M_dist), "/")
+M.migra.plant  <- sweep(M_dist, 2, colSums(M_dist), "/")
+
+# Increased regional input to prevent stochastic monopoly
+m.pool.animal <- 0.3
+m.pool.plant  <- 0.3
+
+niches.mean.animal <- seq(1, 5, length.out = S)
+niches.mean.plant  <- seq(1, 5, length.out = S)
+
+# Moderate gradient of niche widths (sigma)
+sd_gradient <- c(0.6, 0.8, 1.0, 1.2, 1.4, 1.6)
+
+# 2. Niche width - facilitation tradeoff scenario
+res_tradeoff <- masterEqMutualistic(
+  Meta.pool.animal   = Meta.pool.animal,
+  Meta.pool.plant    = Meta.pool.plant,
+  Js.animal          = Js.animal,
+  Js.plant           = Js.plant,
+  M.migra.animal     = M.migra.animal,
+  M.migra.plant      = M.migra.plant,
+  m.pool.animal      = m.pool.animal,
+  m.pool.plant       = m.pool.plant,
+  niches.mean.animal = niches.mean.animal,
+  niches.sd.animal   = sd_gradient,
+  niches.mean.plant  = niches.mean.plant,
+  niches.sd.plant    = sd_gradient,
+  Q.LH               = 1,
+  Ts                 = 293.15,
+  lottery            = TRUE,
+  nIterations        = 100,
+  verbose            = FALSE
+)
+
+# 3. Switch off the Niche width - facilitation
+res_control <- masterEqMutualistic(
+  Meta.pool.animal   = Meta.pool.animal,
+  Meta.pool.plant    = Meta.pool.plant,
+  Js.animal          = Js.animal,
+  Js.plant           = Js.plant,
+  M.migra.animal     = M.migra.animal,
+  M.migra.plant      = M.migra.plant,
+  m.pool.animal      = m.pool.animal,
+  m.pool.plant       = m.pool.plant,
+  niches.mean.animal = niches.mean.animal,
+  niches.sd.animal   = rep(1.0, S),
+  niches.mean.plant  = niches.mean.plant,
+  niches.sd.plant    = rep(1.0, S),
+  Q.LH               = 1,
+  Ts                 = 293.15,
+  lottery            = TRUE,
+  nIterations        = 100,
+  verbose            = FALSE
+)
+
+# 4. Comparison between the two results
+df_results <- data.frame(
+  Species          = paste0("Animal_Sp", 1:S),
+  Niche_Width_SD   = sd_gradient,
+  Abundance_Tradeoff = round(rowMeans(res_tradeoff$Meta.animal), 1),
+  Abundance_Control  = round(rowMeans(res_control$Meta.animal), 1)
+)
+
+print(df_results)
+
+```
+
+
+## 8. Mutualistic networks: spatial simulation
+
+We continue with mutualistic networks. we define an environmental filter (east-west gradient) for plants and an uniform filter for animals. We observe that animals are also distributed along the east-west gradient due to the mutualistic interactions with plants. 
+
+```{r mutualistic 2, fig.width=8, fig.height=5}
+
+# 1. SETUP SPATIAL LANDSCAPE (10x10 Grid = 100 Communities)
+r <- rast(ncol = 10, nrow = 10, xmin = 0, xmax = 10, ymin = 0, ymax = 10)
+C <- ncell(r)
+
+coords <- crds(r)
+dists  <- as.matrix(dist(coords))
+
+# Spatial distance-decay migration matrices
+M.migra.plant  <- 10^(-0.05 * dists)
+M.migra.animal <- 10^(-0.02 * dists)
+
+M.migra.plant  <- sweep(M.migra.plant, 2, colSums(M.migra.plant), "/")
+M.migra.animal <- sweep(M.migra.animal, 2, colSums(M.migra.animal), "/")
+
+# Normalized X-coordinate across grid 
+x_coords <- coords[, 1] / 10 
+
+# 2. SPECIES POOLS  and NICHE TRAITS
+
+# Number of plants and animal species
+S_animal <- 50
+S_plant  <- 50
+
+# Uniform migration from pool
+Meta.pool.animal <- rep(1 / S_animal, S_animal)
+Meta.pool.plant  <- rep(1 / S_plant, S_plant)
+
+# Uniform habitat size
+Js.animal <- rep(400, C)
+Js.plant  <- rep(400, C)
+
+# 10 Niche centers (mu) and 5 Niche widths (sigma)
+mu_centers <- seq(1, 10, length.out = 10)
+sigmas     <- seq(0.6, 1.8, length.out = 5)
+
+niches.mean.animal <- rep(mu_centers, each = 5)
+niches.sd.animal   <- rep(sigmas, times = 10)
+
+niches.mean.plant  <- rep(mu_centers, each = 5)
+niches.sd.plant    <- rep(sigmas, times = 10)
+
+# 3. ENVIRONMENTAL FILTERS (FF)
+
+# (i) PLANT FILTER: Gaussian spatial niches mapped along West-East axis 
+spatial_optima_plant <- (niches.mean.plant - 1) / 9 * 0.9 + 0.05
+
+FF.plant <- matrix(0, nrow = S_plant, ncol = C)
+for (i in 1:S_plant) {
+  FF.plant[i, ] <- exp(- (x_coords - spatial_optima_plant[i])^2 / (2 * 0.12^2))
+}
+FF.plant <- pmax(FF.plant, 0.001)
+
+# (ii) ANIMAL FILTER: 1 everywhere (No abiotic gradient)
+FF.animal <- matrix(1, nrow = S_animal, ncol = C)
+
+# Self-limiting intra-guild competition to ensure multi-species persistence
+alpha.animal <- diag(S_animal)
+alpha.plant  <- diag(S_plant)
+
+# 4. Simulate Mutualistic networks
+
+results_mut <- masterEqMutualistic(
+  Meta.pool.animal   = Meta.pool.animal,
+  Meta.pool.plant    = Meta.pool.plant,
+  Js.animal          = Js.animal,
+  Js.plant           = Js.plant,
+  M.migra.animal     = M.migra.animal,
+  M.migra.plant      = M.migra.plant,
+  m.pool.animal      = 0.05,
+  m.pool.plant       = 0.05,
+  FF.animal          = FF.animal,
+  FF.plant           = FF.plant,
+  
+  alpha.animal       = alpha.animal,
+  alpha.plant        = alpha.plant,
+  alpha.animal.plant = NULL, # Dynamic mutualism generated from niches overlap
+  
+  niches.mean.animal = niches.mean.animal,
+  niches.sd.animal   = niches.sd.animal,
+  niches.mean.plant  = niches.mean.plant,
+  niches.sd.plant    = niches.sd.plant,
+  Q.LH               = 1.0,
+  
+  lottery            = TRUE,
+  nIterations        = 250,
+  verbose            = FALSE
+)
+
+# 5. COMMUNITY WEIGHTED MEAN (CWM) TRAIT CALCULATIONS
+
+N_animal <- results_mut$Meta.animal
+N_plant  <- results_mut$Meta.plant
+
+# Calculate Community Weighted Mean Niche Center (CWM mu) per patch
+cwm_mu_plant  <- colSums(N_plant * niches.mean.plant) / colSums(N_plant)
+cwm_mu_animal <- colSums(N_animal * niches.mean.animal) / colSums(N_animal)
+
+r_cwm_plant  <- r
+r_cwm_animal <- r
+
+values(r_cwm_plant)  <- cwm_mu_plant
+values(r_cwm_animal) <- cwm_mu_animal
+
+# 6. visualization of CWM Niche Centers and Spatial Trait Continuum
+
+par(mfrow = c(1, 3))
+
+# Plot 1: Plant CWM Niche Center Map (Abiotic West-East Gradient)
+plot(r_cwm_plant, main = "Plant CWM of niche mean", col = hcl.colors(10, "YlGn"))
+
+# Plot 2: Animal CWM Niche Center Map (FF = 1.0; Pure Biotic Tracking)
+plot(r_cwm_animal, main = "Animal CWM of niche mean", col = hcl.colors(10, "Warm"))
+
+# Plot 3: West-East Spatial Trait Continuum
+plot(x_coords, cwm_mu_animal,
+     xlab = "Spatial Position (0 = West, 1 = East)",
+     ylab = "Animal CWM Niche Center (mu)",
+     main = "Animal Trait Zonation along X-Axis",
+     pch = 19, col = adjustcolor("firebrick", alpha.f = 0.7), cex = 1.2)
+abline(lm(cwm_mu_animal ~ x_coords), col = "black", lwd = 2)
 
 
 
-
+```
 
 
 

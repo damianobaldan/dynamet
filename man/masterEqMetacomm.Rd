@@ -2,7 +2,7 @@
 % Please edit documentation in R/masterEqMetacomm.R
 \name{masterEqMetacomm}
 \alias{masterEqMetacomm}
-\title{Simulate Metacommunity Dynamics via Coalescent Assembly and lottery Phases}
+\title{Simulate Metacommunity Dynamics}
 \usage{
 masterEqMetacomm(
   Meta.pool,

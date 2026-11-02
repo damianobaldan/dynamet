@@ -132,8 +132,9 @@ masterEqMutualistic <- function(Meta.pool.animal, Meta.pool.plant,
   if (length(Ts) == 1) Ts <- rep(Ts, C)
 
   #----------- 3. THERMAL MORTALITY CALCULATIONS -----------
-  min.dead.Tmin     <- prop.dead.by.it / exp(-Ea / (min(Ts) * 8.62e-05))
-  prop.dead.by.comm <- min.dead.Tmin * exp(-Ea / (Ts * 8.62e-05))
+  kB <- 8.62e-05
+  min.dead.Tmin     <- prop.dead.by.it / exp(-Ea / (min(Ts) * kB))
+  prop.dead.by.comm <- min.dead.Tmin * exp(-Ea / (Ts * kB))
 
   if (max(prop.dead.by.comm) > 0.95) {
     stop("Error: Thermal mortality replaces >95% of individuals. Reduce prop.dead.by.it.")
@@ -449,7 +450,7 @@ validateMutualisticMetaInputs <- function(Meta.pool.animal,
   if (!is.numeric(nIterations) || length(nIterations) != 1)     stop("'nIterations' must be a single numeric integer.")
   if (!is.numeric(prop.dead.by.it) || length(prop.dead.by.it) != 1) stop("'prop.dead.by.it' must be a single numeric fraction.")
   if (!is.numeric(Ea) || length(Ea) != 1)                      stop("'Ea' must be a single numeric value.")
-  if (!is.numeric(Q.LH) || length(Q.LH) != 1)                  stop("'Q.LH' must be a single numeric value.")
+  if (!is.numeric(Q.LH) || length(Q.LH) != 1)                  stop("Value error: 'Q.LH' must be a single numeric value.")
 
   if (!is.numeric(Meta.pool.animal)) stop("'Meta.pool.animal' must be a numeric vector.")
   if (!is.numeric(Meta.pool.plant))  stop("'Meta.pool.plant' must be a numeric vector.")
@@ -518,10 +519,10 @@ validateMutualisticMetaInputs <- function(Meta.pool.animal,
     stop(sprintf("Dimension mismatch: Interspecific competition matrix 'alpha.animal' must be a square matrix of %d x %d.", S.a, S.a))
   }
   if (!is.null(niches.mean.animal) && length(niches.mean.animal) != S.a) {
-    stop(sprintf("Dimension mismatch: 'niches.mean.animal' length (%d) must match 'Meta.pool.animal' (%d).", length(niches.mean.animal), S.a))
+    stop(sprintf("Dimension mismatch: 'niches.mean.animal' length (%d) must equal S_animal (%d).", length(niches.mean.animal), S.a))
   }
   if (!is.null(niches.sd.animal) && length(niches.sd.animal) != S.a) {
-    stop(sprintf("Dimension mismatch: 'niches.sd.animal' length (%d) must match 'Meta.pool.animal' (%d).", length(niches.sd.animal), S.a))
+    stop(sprintf("Dimension mismatch: 'niches.sd.animal' length (%d) must equal S_animal (%d).", length(niches.sd.animal), S.a))
   }
   if (!is.null(init.comm.animal) && (nrow(init.comm.animal) != S.a || ncol(init.comm.animal) != C)) {
     stop(sprintf("Dimension mismatch: Matrix 'init.comm.animal' must be of dimension %d x %d.", S.a, C))
@@ -538,10 +539,10 @@ validateMutualisticMetaInputs <- function(Meta.pool.animal,
     stop(sprintf("Dimension mismatch: Interspecific competition matrix 'alpha.plant' must be a square matrix of %d x %d.", S.p, S.p))
   }
   if (!is.null(niches.mean.plant) && length(niches.mean.plant) != S.p) {
-    stop(sprintf("Dimension mismatch: 'niches.mean.plant' length (%d) must match 'Meta.pool.plant' (%d).", length(niches.mean.plant), S.p))
+    stop(sprintf("Dimension mismatch: 'niches.mean.plant' length (%d) must equal S_plant (%d).", length(niches.mean.plant), S.p))
   }
   if (!is.null(niches.sd.plant) && length(niches.sd.plant) != S.p) {
-    stop(sprintf("Dimension mismatch: 'niches.sd.plant' length (%d) must match 'Meta.pool.plant' (%d).", length(niches.sd.plant), S.p))
+    stop(sprintf("Dimension mismatch: 'niches.sd.plant' length (%d) must equal S_plant (%d).", length(niches.sd.plant), S.p))
   }
   if (!is.null(init.comm.plant) && (nrow(init.comm.plant) != S.p || ncol(init.comm.plant) != C)) {
     stop(sprintf("Dimension mismatch: Matrix 'init.comm.plant' must be of dimension %d x %d.", S.p, C))
@@ -663,7 +664,7 @@ validateMutualisticMetaInputs <- function(Meta.pool.animal,
   if (any(Ts <= 0)) stop("Value error: Temperatures in 'Ts' must be strictly positive (in Kelvin).")
   if (prop.dead.by.it <= 0 || prop.dead.by.it > 1) stop("Value error: 'prop.dead.by.it' must be in (0, 1].")
   if (nIterations < 1) stop("Value error: 'nIterations' must be an integer >= 1.")
-  if (Q.LH < 0) stop("Value error: Trade-off exponent 'Q.LH' must be >= 0.")
+  if (Q.LH < 0) stop("Value error: Trade-off exponent 'Q.LH' must be a single non-negative numeric value.")
 
   if (!is.null(niches.sd.animal) && any(niches.sd.animal <= 0)) {
     stop("Value error: Niche widths in 'niches.sd.animal' must be strictly positive (> 0).")
@@ -677,56 +678,6 @@ validateMutualisticMetaInputs <- function(Meta.pool.animal,
   }
   if (!is.null(FF.plant) && (any(FF.plant < 0) || any(FF.plant > 1))) {
     stop("Value error: Environmental filter 'FF.plant' values must be between 0 and 1.")
-  }
-
-  invisible(TRUE)
-}
-
-
-#' Validate Input Parameters for Metacommunity Simulation
-#' @keywords internal
-validateMutualisticMetaInputs <- function(Meta.pool.animal, Meta.pool.plant,
-                                          Js.animal, Js.plant,
-                                          M.migra.animal, M.migra.plant,
-                                          m.pool.animal, m.pool.plant,
-                                          d.spp.animal = NULL, d.spp.plant = NULL,
-                                          FF.animal = NULL, FF.plant = NULL,
-                                          alpha.animal = NULL, alpha.plant = NULL, alpha.animal.plant = NULL,
-                                          niches.mean.animal = NULL, niches.sd.animal = NULL,
-                                          niches.mean.plant = NULL, niches.sd.plant = NULL,
-                                          Q.LH = 1.0,
-                                          init.comm.animal = NULL, init.comm.plant = NULL,
-                                          id.fixed = NULL, comm.fixed.animal = NULL, comm.fixed.plant = NULL,
-                                          m.temp.animal = NULL, m.temp.plant = NULL,
-                                          prop.dead.by.it, Ea, Ts, lottery, nIterations) {
-
-  S.a <- length(Meta.pool.animal)
-  S.p <- length(Meta.pool.plant)
-  C   <- length(Js.animal)
-
-  # Check Niche Trait Dimensions
-  if (!is.null(niches.mean.animal) && length(niches.mean.animal) != S.a) {
-    stop(sprintf("Dimension mismatch: 'niches.mean.animal' length (%d) must equal S_animal (%d).", length(niches.mean.animal), S.a))
-  }
-  if (!is.null(niches.sd.animal)) {
-    if (length(niches.sd.animal) != S.a) {
-      stop(sprintf("Dimension mismatch: 'niches.sd.animal' length (%d) must equal S_animal (%d).", length(niches.sd.animal), S.a))
-    }
-    if (any(niches.sd.animal <= 0)) stop("Value error: All values in 'niches.sd.animal' must be strictly positive.")
-  }
-
-  if (!is.null(niches.mean.plant) && length(niches.mean.plant) != S.p) {
-    stop(sprintf("Dimension mismatch: 'niches.mean.plant' length (%d) must equal S_plant (%d).", length(niches.mean.plant), S.p))
-  }
-  if (!is.null(niches.sd.plant)) {
-    if (length(niches.sd.plant) != S.p) {
-      stop(sprintf("Dimension mismatch: 'niches.sd.plant' length (%d) must equal S_plant (%d).", length(niches.sd.plant), S.p))
-    }
-    if (any(niches.sd.plant <= 0)) stop("Value error: All values in 'niches.sd.plant' must be strictly positive.")
-  }
-
-  if (!is.numeric(Q.LH) || length(Q.LH) != 1 || Q.LH < 0) {
-    stop("Value error: 'Q.LH' must be a single non-negative numeric value.")
   }
 
   invisible(TRUE)

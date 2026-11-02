@@ -140,11 +140,14 @@ masterEqMetacomm <- function(Meta.pool, Js, M.migra, m.pool, d.spp = NULL,
 
   #----------- 3. THERMAL DEPENDENCE CALCULATIONS -----------
 
+  # Arrhenius constant
+  kB <- 8.62e-5
+
   # Estimate standard constant based on the minimum temperature patch to anchor baseline mortality
-  min.dead.Tmin <- prop.dead.by.it / exp(-Ea / (min(Ts) * 8.62e-5))
+  min.dead.Tmin <- prop.dead.by.it / exp(-Ea / (min(Ts) * kB))
 
   # Scale individual community mortality rates based on local temperature
-  prop.dead.by.comm <- min.dead.Tmin * exp(-Ea / (Ts * 8.62e-5))
+  prop.dead.by.comm <- min.dead.Tmin * exp(-Ea / (Ts * kB))
 
   # Prevent simulation failure if temperature-driven mortality is unrealistically high
   if (max(prop.dead.by.comm) > 0.95) {

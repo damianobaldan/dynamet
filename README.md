@@ -7,6 +7,9 @@ devtools::install_github("damianobaldan/dynamet", build_vignettes = TRUE)
 
 # Changelog
 
+0.2.4
+* fixed issue with duplicated validateMutualisticInputs() 
+
 0.2.3
 * Added niche width - facilitation tradeoff in masterEqMutualistic()
 * Added examples with mutualistic networks to the vignette

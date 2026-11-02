@@ -38,41 +38,6 @@ validateMutualisticMetaInputs(
   lottery,
   nIterations
 )
-
-validateMutualisticMetaInputs(
-  Meta.pool.animal,
-  Meta.pool.plant,
-  Js.animal,
-  Js.plant,
-  M.migra.animal,
-  M.migra.plant,
-  m.pool.animal,
-  m.pool.plant,
-  d.spp.animal = NULL,
-  d.spp.plant = NULL,
-  FF.animal = NULL,
-  FF.plant = NULL,
-  alpha.animal = NULL,
-  alpha.plant = NULL,
-  alpha.animal.plant = NULL,
-  niches.mean.animal = NULL,
-  niches.sd.animal = NULL,
-  niches.mean.plant = NULL,
-  niches.sd.plant = NULL,
-  Q.LH = 1,
-  init.comm.animal = NULL,
-  init.comm.plant = NULL,
-  id.fixed = NULL,
-  comm.fixed.animal = NULL,
-  comm.fixed.plant = NULL,
-  m.temp.animal = NULL,
-  m.temp.plant = NULL,
-  prop.dead.by.it,
-  Ea,
-  Ts,
-  lottery,
-  nIterations
-)
 }
 \arguments{
 \item{Meta.pool.animal}{Relative abundances for animal species (S_animal).}
@@ -141,7 +106,5 @@ validateMutualisticMetaInputs(
 }
 \description{
 Validate the inputs for masterEqMutualistic
-
-Validate Input Parameters for Metacommunity Simulation
 }
 \keyword{internal}
